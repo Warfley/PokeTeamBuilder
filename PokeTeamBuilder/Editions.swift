@@ -684,6 +684,8 @@ let crystalPokemon: [Pokemon] = [
     ho_oh
 ]
 
+// TODO: remove preevolutionary pokemon
+
 let rubyPokemon: [Pokemon] = [
     pikachu,
     raichu,
