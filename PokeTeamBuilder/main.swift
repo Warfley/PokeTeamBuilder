@@ -130,87 +130,96 @@ func findNeutral(team: [Pokemon]) -> [PokeType] {
     return res
 }
 
-func genTeam(_ basePokemon: [Pokemon], _ pool: [Pokemon], _ count: Int) -> [Pokemon] {
+func genTeam(_ basePokemon: [Pokemon], _ pokePool: [Pokemon], _ count: Int) -> [Pokemon] {
     if basePokemon.count == count {
         return basePokemon
     }
     
     var team = basePokemon
-    let pool = pool.shuffled()
+    let pokePool = pokePool.shuffled()
     
     var tp = types
     
     tp = removeStrengths(team: team, types: tp)
-    var min = tp.count
+    var minV = tp.count
     var minP: Pokemon? = nil
     
-    for p in pool {
+    for p in pokePool {
         let t = removeStrengths(team: [p], types: tp).count
-        if t < min {
-            min = t
+        if t + min(basePokemon.count - 3, 0) < minV {
+            minV = t
             minP = p
         }
     }
     
-    team.append(minP ?? pool.first!)
+    team.append(minP ?? pokePool.first!)
     
-    return genTeam(team, pool.filter( { $0.name != team.last?.name } ), count)
+    return genTeam(team, pokePool.filter( { $0.name != team.last?.name } ), count)
 }
 
 
 var c = 0
 var reqTeam = [Pokemon]()
-var pool = [Pokemon]()
+var pokePool = [Pokemon]()
 
 if CommandLine.argc > 2 {
     switch CommandLine.arguments[1] {
     case "r":
-        pool = redPokemon
+        pokePool = redPokemon
     case "g":
-        pool = greenPokemon
+        pokePool = greenPokemon
     case "b":
-        pool = bluePokemon
+        pokePool = bluePokemon
     case "y":
-        pool = yellowPokemon
+        pokePool = yellowPokemon
     case "go":
-        pool = goldPokemon
+        pokePool = goldPokemon
     case "si":
-        pool = silverPokemon
+        pokePool = silverPokemon
     case "cr":
-        pool = crystalPokemon
+        pokePool = crystalPokemon
     default:
         print("unkown edition")
     }
     c = Int(CommandLine.arguments[2])!
+    var mode = 0
     for i in 2..<CommandLine.argc {
         let s = CommandLine.arguments[Int(i)].lowercased()
-        for p in yellowPokemon {
-            if p.name.lowercased() == s {
-                reqTeam.append(p)
-                break
+        if s == "-p" {
+            mode = 1
+        } else if s == "-e" {
+            mode = 2
+        } else if mode == 1 {
+            for p in pokemons {
+                if p.name.lowercased() == s {
+                    reqTeam.append(p)
+                    break
+                }
             }
+        } else if mode == 2 {
+            pokePool = pokePool.filter( { $0.name.lowercased() != s } )
         }
     }
 } else if CommandLine.argc == 1 {
     var s: String;
-    while pool.isEmpty {
+    while pokePool.isEmpty {
         print("Enter edition shortcut (r, g, b, y, go, si, cr)")
         s = readLine()!
         switch s {
         case "r":
-            pool = redPokemon
+            pokePool = redPokemon
         case "g":
-            pool = greenPokemon
+            pokePool = greenPokemon
         case "b":
-            pool = bluePokemon
+            pokePool = bluePokemon
         case "y":
-            pool = yellowPokemon
+            pokePool = yellowPokemon
         case "go":
-            pool = goldPokemon
+            pokePool = goldPokemon
         case "si":
-            pool = silverPokemon
+            pokePool = silverPokemon
         case "cr":
-            pool = crystalPokemon
+            pokePool = crystalPokemon
         default:
             print("unkown edition")
         }
@@ -220,22 +229,32 @@ if CommandLine.argc > 2 {
     repeat {
         print("Enter pokemon to be in the team (empty if none)")
         s = (readLine() ?? "").lowercased()
-        for p in yellowPokemon {
+        for p in pokemons {
             if p.name.lowercased() == s {
                 reqTeam.append(p)
                 break
             }
         }
     } while !s.isEmpty
+    
+    repeat {
+        print("Enter pokemon to not be in the team (empty if none)")
+        s = (readLine() ?? "").lowercased()
+        pokePool = pokePool.filter( { $0.name.lowercased() != s} )
+    } while !s.isEmpty
+    
 } else {
-    print("Usage: PokeTeamBuilder E N [P1 P2 ...]")
+    print("Usage: PokeTeamBuilder E N [-p P1 P2 ...] [-e E1 E2 ...]")
     print("E: Edition (r, g, b, y, go, si, cr)")
     print("N: Number of teams to generate")
     print("PX: default pokemon name, e.g. raichu")
+    print("EX: pokemon names to be excluded, e.g. raichu")
+    exit(0)
 }
 
 while true {
-    var start = reqTeam.isEmpty ? [yellowPokemon.shuffled().first!] : reqTeam
+    var pool = pokePool
+    var start = reqTeam.isEmpty ? [pool.shuffled().first!] : reqTeam
     for s in start {
         pool = pool.filter({$0.name != s.name})
     }
