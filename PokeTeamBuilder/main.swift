@@ -130,7 +130,7 @@ func findNeutral(team: [Pokemon]) -> [PokeType] {
     return res
 }
 
-func genTeam(_ basePokemon: [Pokemon], _ pokePool: [Pokemon], _ count: Int) -> [Pokemon] {
+func genTeam(_ basePokemon: [Pokemon], _ pokePool: [Pokemon], _ requiredTypes: [PokeType], _ count: Int) -> [Pokemon] {
     if basePokemon.count == count {
         return basePokemon
     }
@@ -144,25 +144,42 @@ func genTeam(_ basePokemon: [Pokemon], _ pokePool: [Pokemon], _ count: Int) -> [
     var minV = tp.count
     var minP: Pokemon? = nil
     
-    for p in pokePool {
+    let pool = requiredTypes.isEmpty ? pokePool :
+        pokePool.filter( { (p) in
+            return !p.types.filter( { requiredTypes.contains($0) ||
+                ((basePokemon.count < count - 1) && (arc4random_uniform(100) < 10)) } ).isEmpty
+        } )
+    
+    for p in pool {
         let t = removeStrengths(team: [p], types: tp).count
-        if t + min(basePokemon.count - 3, 0) < minV {
+        if t + min(basePokemon.count - (count / 2), 0) < minV {
             minV = t
             minP = p
         }
     }
     
-    team.append(minP ?? pokePool.first!)
+    team.append(minP ?? pool.first!)
     
-    return genTeam(team, pokePool.filter( { $0.name != team.last?.name } ), count)
+    return genTeam(team, pokePool.filter( { $0.name != team.last?.name } ),
+                   requiredTypes.filter( { !team.last!.types.contains($0) } ),
+                   count)
+}
+
+func getType(rawValue: String) -> PokeType? {
+    for t in iterateEnum(PokeType.self) {
+        if t.rawValue.lowercased() == rawValue.lowercased() { return t }
+    }
+    return nil
 }
 
 
-var c = 0
+var c = -1
+var teamSize = -1
 var reqTeam = [Pokemon]()
 var pokePool = [Pokemon]()
+var reqTypes = [PokeType]()
 
-if CommandLine.argc > 2 {
+if CommandLine.argc > 3 {
     switch CommandLine.arguments[1] {
     case "r":
         pokePool = redPokemon
@@ -182,13 +199,16 @@ if CommandLine.argc > 2 {
         print("unkown edition")
     }
     c = Int(CommandLine.arguments[2])!
+    teamSize = Int(CommandLine.arguments[3])!
     var mode = 0
-    for i in 2..<CommandLine.argc {
+    for i in 4..<CommandLine.argc {
         let s = CommandLine.arguments[Int(i)].lowercased()
         if s == "-p" {
             mode = 1
         } else if s == "-e" {
             mode = 2
+        } else if s == "-t" {
+            mode = 3
         } else if mode == 1 {
             for p in pokemons {
                 if p.name.lowercased() == s {
@@ -198,6 +218,10 @@ if CommandLine.argc > 2 {
             }
         } else if mode == 2 {
             pokePool = pokePool.filter( { $0.name.lowercased() != s } )
+        } else if mode == 3 {
+            if let t = getType(rawValue: s) {
+                reqTypes.append(t)
+            }
         }
     }
 } else if CommandLine.argc == 1 {
@@ -224,8 +248,25 @@ if CommandLine.argc > 2 {
             print("unkown edition")
         }
     }
-    print("Enter amount of teams to generate")
-    c = Int(readLine()!)!
+    
+    repeat {
+        print("Enter amount of teams to generate")
+        if let inp = Int(readLine()!) {
+            c = inp
+        } else {
+            print("invalid input")
+        }
+    } while c < 0
+    
+    repeat {
+        print("Enter team size")
+        if let inp = Int(readLine()!) {
+            teamSize = inp
+        } else {
+            print("invalid input")
+        }
+    } while teamSize < 0
+    
     repeat {
         print("Enter pokemon to be in the team (empty if none)")
         s = (readLine() ?? "").lowercased()
@@ -243,22 +284,42 @@ if CommandLine.argc > 2 {
         pokePool = pokePool.filter( { $0.name.lowercased() != s} )
     } while !s.isEmpty
     
+    repeat {
+        print("Enter required type (empty if none)")
+        s = (readLine() ?? "").lowercased()
+        if let t = getType(rawValue: s) {
+            reqTypes.append(t)
+        }
+    } while !s.isEmpty
+    
 } else {
-    print("Usage: PokeTeamBuilder E N [-p P1 P2 ...] [-e E1 E2 ...]")
+    print("Usage: PokeTeamBuilder E M N [-p P1 P2 ...] [-e E1 E2 ...] [-t T1 T2 ...]")
     print("E: Edition (r, g, b, y, go, si, cr)")
-    print("N: Number of teams to generate")
+    print("M: Amount of teams to generate")
+    print("N: Teamsize")
     print("PX: default pokemon name, e.g. raichu")
     print("EX: pokemon names to be excluded, e.g. raichu")
+    print("TX: Types required in the team, e.g. flying")
     exit(0)
 }
 
 while true {
     var pool = pokePool
-    var start = reqTeam.isEmpty ? [pool.shuffled().first!] : reqTeam
+    
+    var start = reqTeam.isEmpty ? [pool.shuffled().first(where: { (p) in
+        return reqTypes.isEmpty ||
+            !p.types.filter({ reqTypes.contains($0) }).isEmpty
+    } ) ?? pool.first! ] : reqTeam
+    
+    let requiredTypes = reqTypes.filter( { (t) in
+        return start.filter( { $0.types.contains(t) } ).isEmpty
+    } )
+    
     for s in start {
         pool = pool.filter({$0.name != s.name})
     }
-    let t = genTeam(start, pool, 6)
+    
+    let t = genTeam(start, pool, requiredTypes, teamSize)
 
 
     var s = ""
