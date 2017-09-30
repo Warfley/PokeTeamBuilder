@@ -41,6 +41,7 @@ type
   var
     ll: TLanguageList;
     gl: TGenerationList;
+    vl: TVMList;
     i: integer;
     LanguageID: integer = -1;
     Generation: TGeneration;
@@ -85,6 +86,14 @@ type
       Generation:=gl[Generation.ID];
     finally
       gl.Free;
+    end;
+    vl:=TVMList.Create;
+    try
+      vl.LoadVMs(DB, LanguageID, Generation.ID);
+      for i:=0 to vl.Count-1 do
+
+    finally
+      vl.Free;
     end;
   end;
 
