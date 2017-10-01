@@ -32,15 +32,15 @@ type
     procedure LoadLanguages(DB: TDBConnection);
   end;
 
-  TVMList = specialize TFPGList<TVM>;
+  TMoveList = specialize TFPGList<TMove>;
 
   { TVMListHelper }
 
-  TVMListHelper = class helper for TVMList
-    procedure LoadVMs(DB: TDBConnection; LanguageID, GenerationGroup: integer);
+  TVMListHelper = class helper for TMoveList
+    procedure LoadMoves(DB: TDBConnection; LanguageID, Gen: integer);
   end;
 
-  TGenerationList = specialize TFPGList<TGeneration>;
+  TGenerationList = specialize TFPGList<TEdition>;
 
   { TGenerationListHelper }
 
@@ -55,10 +55,11 @@ implementation
 
 procedure TGenerationListHelper.LoadGenerations(DB: TDBConnection; LanguageID: integer);
 var
-  cg: TGeneration;
+  cg: TEdition;
 begin
   DB.Transaction.Active := True;
-  DB.Query.SQL.Text := 'select v.id as id, vn.name as nme, vg.id as gid from ' +
+  DB.Query.SQL.Text := 'select v.id as id, vn.name as nme, vg.id as gid, '+
+    'vg.generation_id as gen from ' +
     '`versions` as v join (select * from `version_names` ' +
     'as vn where vn.local_language_id = :lid) as vn on v.id ' +
     '= vn.version_id join `version_groups` as vg ' +
@@ -73,6 +74,7 @@ begin
         cg.ID := FieldByName('id').AsInteger;
         cg.GroupID := FieldByName('gid').AsInteger;
         cg.Name := FieldByName('nme').AsString;
+        cg.GenerationID:=FieldByName('gen').AsInteger;
         Add(cg);
         Next;
       end;
@@ -84,26 +86,29 @@ end;
 
 { TVMListHelper }
 
-procedure TVMListHelper.LoadVMs(DB: TDBConnection; LanguageID, GenerationGroup: integer);
+procedure TVMListHelper.LoadMoves(DB: TDBConnection; LanguageID, Gen: integer);
 var
-  vm: TVM;
+  mv: TMove;
 begin
   DB.Transaction.Active := True;
-  DB.Query.SQL.Text := 'select m.move_id as mid, i.item_id as iid, mn.name as ' +
-    'mname, i.name as iname from (select * from `machines` as' +
-    ' where m.version_group_id = :GenerationGroup) as m join (select * from '
-    +
-    '`move_names`as mn where mn.local_language_id = :LanguageID) as mn ' +
-    'on m.move_id = mn.move_id join (select * from ' +
-    '`item_names`as i where i.local_language_id = :LanguageID ) as i on' +
-    ' i.item_id = m.item_id';
+  DB.Query.SQL.Text :=
+  'select m.id as id, mn.name as name from (select * from `moves` where'+
+  ' generation_id = :g) as m join (select * from `move_names` where '+
+  'local_language_id = :lid) as mn where m.id = mn.move_id';
 
-  DB.Query.ParamByName('GenerationGroup').AsInteger := GenerationGroup;
-  DB.Query.ParamByName('LanguageID').AsInteger := LanguageID;
+  DB.Query.ParamByName('g').AsInteger := Gen;
+  DB.Query.ParamByName('lid').AsInteger := LanguageID;
   DB.Query.Open;
   with DB.Query do
     try
-
+      First;
+      while not EOF do
+      begin
+        mv.AttackName:=FieldByName('name').AsString;
+        mv.AttackID:=FieldByName('id').AsInteger;
+        Add(mv);
+        Next;
+      end;
     finally
       Close;
     end;

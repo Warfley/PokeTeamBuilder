@@ -41,10 +41,10 @@ type
   var
     ll: TLanguageList;
     gl: TGenerationList;
-    vl: TVMList;
+    vl: TMoveList;
     i: integer;
     LanguageID: integer = -1;
-    Generation: TGeneration;
+    Edition: TEdition;
   begin
     ll := TLanguageList.Create;
     try
@@ -69,29 +69,29 @@ type
     gl := TGenerationList.Create;
     try
       gl.LoadGenerations(DB, LanguageID);
-      Generation.ID:=-1;
+      Edition.ID:=-1;
       WriteLn('Select generation');
       for i := 0 to gl.Count - 1 do
         WriteLn(Format('[%d] %s', [i, gl[i].Name]));
       repeat
         try
-          ReadLn(Generation.ID);
-          if (Generation.ID < 0) or (Generation.ID >= gl.Count) then
+          ReadLn(Edition.ID);
+          if (Edition.ID < 0) or (Edition.ID >= gl.Count) then
             WriteLn('unknown index');
         except
           on E: EInOutError do
             WriteLn('No number, try again');
         end;
-      until (Generation.ID > 0) and (Generation.ID < gl.Count);
-      Generation:=gl[Generation.ID];
+      until (Edition.ID > 0) and (Edition.ID < gl.Count);
+      Edition:=gl[Edition.ID];
     finally
       gl.Free;
     end;
-    vl:=TVMList.Create;
+    vl:=TMoveList.Create;
     try
-      vl.LoadVMs(DB, LanguageID, Generation.ID);
+      vl.LoadMoves(DB, LanguageID, Edition.GenerationID);
       for i:=0 to vl.Count-1 do
-
+        writeln(vl[i].AttackName);
     finally
       vl.Free;
     end;

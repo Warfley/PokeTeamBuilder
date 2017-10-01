@@ -17,38 +17,36 @@ type
     class operator Equal(a, b: TLanguage): Boolean;
   end;
 
-  { TVM }
+  { TMove }
 
-  TVM = record
-    ItemID,
+  TMove = record
     AttackID: Integer;
-    AttackName,
-    VMName: String;
-    class operator Equal(a, b: TVM): Boolean;
+    AttackName: String;
+    class operator Equal(a, b: TMove): Boolean;
   end;
 
-  { TGeneration }
+  { TEdition }
 
-  TGeneration = record
-    ID, GroupID: Integer;
+  TEdition = record
+    ID, GenerationID, GroupID: Integer;
     Name: String;
-    class operator Equal(a, b: TGeneration): Boolean;
+    class operator Equal(a, b: TEdition): Boolean;
   end;
 
 implementation
 
-{ TGeneration }
+{ TEdition }
 
-class operator TGeneration.Equal(a, b: TGeneration): Boolean;
+class operator TEdition.Equal(a, b: TEdition): Boolean;
 begin
   Result := a.ID = b.ID;
 end;
 
-{ TVM }
+{ TMove }
 
-class operator TVM.Equal(a, b: TVM): Boolean;
+class operator TMove.Equal(a, b: TMove): Boolean;
 begin
-  result := (a.ItemID = b.ItemID) and (a.AttackID = b.AttackID);
+  result := (a.AttackID = b.AttackID);
 end;
 
 { TLanguage }
