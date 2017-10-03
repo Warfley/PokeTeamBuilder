@@ -48,8 +48,96 @@ type
     procedure LoadGenerations(DB: TDBConnection; LanguageID: integer);
   end;
 
+  TObtainableKinds = set of TObtainableKind;
+
+  TPokemonList = specialize TFPGList<TPokemon>;
+
+  { TPokemonListHelper }
+
+  TPokemonListHelper = class helper for TPokemonList
+    procedure LoadPokemons(DB: TDBConnection; LanguageID: Integer;
+                           GenerationID: Integer; ObtainibleKinds: TObtainableKinds);
+  end;
+
+
+const
+  FullKinds = [okCatchable, okSwarm, okDualSlot, okRecieved, okEvolves,
+  okBackEvolve, okEvent];
 
 implementation
+
+{ TPokemonListHelper }
+
+procedure TPokemonListHelper.LoadPokemons(DB: TDBConnection;
+  LanguageID: Integer; GenerationID: Integer; ObtainibleKinds: TObtainableKinds
+  ); var
+  p: TPokemon;
+
+function BuildOKWhereString: String;
+begin
+  Result:='';
+  if ObtainibleKinds = FullKinds then exit;;
+  Result:='And (';
+  if okCatchable in ObtainibleKinds then Result:='kind = "Catchable" or ';
+  if okSwarm in ObtainibleKinds then Result:='kind = "Swarm" or ';
+  if okDualSlot in ObtainibleKinds then Result:='kind = "DualSlot" or ';
+  if okRecieved in ObtainibleKinds then Result:='kind = "Recieve" or ';
+  if okEvolves in ObtainibleKinds then Result:='kind = "Evolves" or ';
+  if okBackEvolve in ObtainibleKinds then Result:='kind = "Backevolution" or ';
+  if okEvent in ObtainibleKinds then Result:='kind = "Event" or ';
+  Result := Result.Substring(1, Result.Length - 3);
+  Result+=')';
+end;
+
+function getOK(str: String): TObtainableKind;
+begin
+    if (str = 'Catchable') then Result:=okCatchable
+  else if (str = 'Swarm') then Result:=okSwarm
+  else if (str = 'DualSlot') then Result:=okDualSlot
+  else if (str = 'Recieve') then Result:=okRecieved
+  else if (str = 'Evolves') then Result:=okEvolves
+  else if (str = 'Backevolution') then Result:=okBackEvolve
+  else if (str = 'Event') then Result:=okEvent
+end;
+
+begin
+  DB.Transaction.Active := True;
+  DB.Query.SQL.Text := 'select id, name, t1, t2, kind as obtain_kind from '+
+    '(select Max(p.id) as id, kind from '+
+    '(select * from `pokemon_species` as p'+
+    ' join (select * from `obtainable` where version_id = :vid '+
+    BuildOKWhereString + ') '+
+    'on pokemon_id = p.id) as p group by p.evolution_chain_id) as p '+
+    'join (select name, pokemon_species_id from '+
+    '`pokemon_species_names` where local_language_id = :lid) as pn '+
+    'on pn.pokemon_species_id = p.id join '+
+    '(select type_id as t1, pokemon_id from `pokemon_types` where slot = 1) as t1 '+
+    'on t1.pokemon_id = p.id left '+
+    'join (select type_id as t2, pokemon_id from '+
+    '`pokemon_types` where slot = 2) as t2 on t2.pokemon_id = p.id group by p.id';
+  DB.Query.ParamByName('lid').AsInteger := LanguageID;
+  DB.Query.ParamByName('vid').AsInteger := GenerationID;
+  DB.Query.Open;
+  with DB.Query do
+    try
+      First;
+      while not EOF do
+      begin
+        p.Name:=FieldByName('name').AsString;
+        p.ID:=FieldByName('id').AsInteger;
+        p.ObtainableKind:=GetOK(FieldByName('obtain_kind').AsString);
+        p.Type1:=FieldByName('t1').AsInteger;
+        if FieldByName('t2').IsNull then
+          p.Type2:=0
+        else p.Type2:=FieldByName('t2').AsInteger;
+        Add(p);
+        Next;
+      end;
+
+    finally
+      DB.Transaction.Commit;
+    end;
+end;
 
 { TGenerationListHelper }
 

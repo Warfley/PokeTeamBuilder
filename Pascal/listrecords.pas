@@ -33,7 +33,25 @@ type
     class operator Equal(a, b: TEdition): Boolean;
   end;
 
+  TObtainableKind = (okCatchable, okSwarm, okDualSlot, okRecieved, okEvolves, okBackEvolve, okEvent);
+
+  { TPokemon }
+
+  TPokemon = record
+    ID, Type1, Type2: Integer;
+    Name: String;
+    ObtainableKind: TObtainableKind;
+    class operator Equal(a, b: TPokemon): Boolean;
+  end;
+
 implementation
+
+{ TPokemon }
+
+class operator TPokemon.Equal(a, b: TPokemon): Boolean;
+begin
+  result := a.ID = b.ID
+end;
 
 { TEdition }
 

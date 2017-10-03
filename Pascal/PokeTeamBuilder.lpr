@@ -42,6 +42,7 @@ type
     ll: TLanguageList;
     gl: TGenerationList;
     vl: TMoveList;
+    pl: TPokemonList;
     i: integer;
     LanguageID: integer = -1;
     Edition: TEdition;
@@ -90,8 +91,14 @@ type
     vl:=TMoveList.Create;
     try
       vl.LoadMoves(DB, LanguageID, Edition.GenerationID);
-      for i:=0 to vl.Count-1 do
-        writeln(vl[i].AttackName);
+    finally
+      vl.Free;
+    end;    
+    pl:=TPokemonList.Create;
+    try
+      pl.LoadPokemons(DB, LanguageID, Edition.ID, FullKinds);
+      for i:=0 to pl.Count-1 do
+        writeln(pl[i].Name);
     finally
       vl.Free;
     end;
