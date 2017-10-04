@@ -20,7 +20,7 @@ type
   { TMove }
 
   TMove = record
-    AttackID: Integer;
+    AttackID, TypeID: Integer;
     AttackName: String;
     class operator Equal(a, b: TMove): Boolean;
   end;
@@ -35,16 +35,68 @@ type
 
   TObtainableKind = (okCatchable, okSwarm, okDualSlot, okRecieved, okEvolves, okBackEvolve, okEvent);
 
+  TMoveAvailable = record
+    MID: Integer;
+    Available: Boolean;
+  end;
+
   { TPokemon }
 
   TPokemon = record
     ID, Type1, Type2: Integer;
     Name: String;
     ObtainableKind: TObtainableKind;
+    Moves: array of TMoveAvailable;
     class operator Equal(a, b: TPokemon): Boolean;
+  end;     
+
+  TTypeFactor = record
+      TID, Factor: Integer;
+      Name: String;
+  end;
+
+  { TTeam }
+
+  TTeam = record
+    Strength: array of TTypeFactor;
+    Pokemon: array of TPokemon;
+    class operator Equal(a,b: TTeam): Boolean;
+  end;
+
+  { TTypeStrength }
+
+  TTypeStrength = record
+    Name: String;
+    ID: Integer;
+    Factors: array of TTypeFactor;
+    class operator Equal(a,b: TTypeStrength): Boolean;
   end;
 
 implementation
+
+{ TTypeStrength }
+
+class operator TTypeStrength.Equal(a, b: TTypeStrength): Boolean;
+begin
+  Result:=a.ID=b.ID;
+end;
+
+{ TTeam }
+
+class operator TTeam.Equal(a, b: TTeam): Boolean;
+var
+  i, j: Integer;
+begin
+  Result := Length(a.Pokemon) = Length(b.pokemon);
+  if not Result then exit;
+  for i:=0 to Length(a.Pokemon)-1 do
+    for j:=0 to Length(b.Pokemon)-1 do
+      if a.Pokemon[i].ID <> b.Pokemon[j].ID then
+      begin
+        Result := False;
+        exit;
+      end;
+end;
 
 { TPokemon }
 
