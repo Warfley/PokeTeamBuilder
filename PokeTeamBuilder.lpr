@@ -209,7 +209,7 @@ end;
 
   procedure TPokeTeamBuilder.StartGraphicalCLI(DB: TDBConnection; TeamBuilder: TPKTB);
   begin
-
+    StartStdCLI(DB, TeamBuilder);
   end;
 
   procedure TPokeTeamBuilder.TeamGenerated(const Team: TTeam);

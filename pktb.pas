@@ -47,9 +47,9 @@ type
   end;
 
 const
-  MoveValue = 10;
+  MoveValue = 200;
   FactorDivisor = 40;
-  Shuffle = 3;
+  Shuffle = 5;
 
 
 implementation
@@ -89,9 +89,9 @@ begin
     begin
       if pkmn.Moves[j].Available and (Moves.FindMove(pkmn.Moves[j].MID) >= 0) then
         if (pkmn.Type1=Moves[j].TypeID) or (pkmn.Type2=Moves[j].TypeID) then
-           inc(w, MoveValue*2)
+           inc(w, (MoveValue div Count)*2)
         else
-          inc(w, MoveValue);
+          inc(w, MoveValue div Count);
     end;
     j:=FStrengthTable.FindType(pkmn.Type1);
     if j<0 then j:=FStrengthTable.FindType(1);
