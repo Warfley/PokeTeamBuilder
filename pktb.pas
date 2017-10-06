@@ -101,7 +101,9 @@ begin
         inc(w, t.Factors[j].Factor div FactorDivisor);
     if pkmn.Type2>0 then
     begin
-      t:=FStrengthTable[FStrengthTable.FindType(pkmn.Type1)];
+    j:=FStrengthTable.FindType(pkmn.Type2);
+    if j<0 then j:=FStrengthTable.FindType(1);
+    t:=FStrengthTable[j];
       for j := 0 to Length(t.Factors) - 1 do
         if GetStrength(t.Factors[j].TID, Team) = 0 then
           inc(w, t.Factors[j].Factor div FactorDivisor);

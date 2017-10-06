@@ -99,7 +99,7 @@ var c: Integer;
   i, j: Integer;
 begin
   DB.Transaction.Active := True;
-  DB.Query.SQL.Text:='select Count(*) as c from `types` where generation_id = :gid ' +
+  DB.Query.SQL.Text:='select Count(*) as c from `types` where generation_id <= :gid ' +
                       'and id < 1000';     
   DB.Query.ParamByName('gid').AsInteger := GenerationID;
   DB.Query.Open;
@@ -114,8 +114,8 @@ begin
                        '(select name, type_id from `type_names` where '+
                        'local_language_id = :lid) on type_id = damage_type_id ' +
                        'join `types` as t1 on t1.id = type_id and '+
-                       't1.generation_id = :gid join `types` as t2 on '+
-                       't2.id = target_type_id and t2.generation_id = :gid';
+                       't1.generation_id <= :gid join `types` as t2 on '+
+                       't2.id = target_type_id and t2.generation_id <= :gid';
   DB.Query.ParamByName('lid').AsInteger := LanguageID;
   DB.Query.ParamByName('gid').AsInteger := GenerationID;
   DB.Query.Open;
@@ -215,7 +215,7 @@ begin
     ' pokemon_id from `pokemon_moves` where move_id = '+Moves[i].ToString+
     ' and version_group_id = :vgid) as mp'+Moves[i].ToString+' on mp'+Moves[i].ToString+'.pokemon_id = p.id');
   DB.Query.ParamByName('lid').AsInteger := LanguageID;
-  DB.Query.ParamByName('vid').AsInteger := Edition.GenerationID;
+  DB.Query.ParamByName('vid').AsInteger := Edition.ID;
   if Length(Moves)> 0 then
    DB.Query.ParamByName('vgid').AsInteger := Edition.GroupID;
   DB.Query.Open;
@@ -296,7 +296,7 @@ begin
   DB.Transaction.Active := True;
   DB.Query.SQL.Text :=
   'select m.id as id, mn.name as name, m.type_id as tid from (select * from `moves` where'+
-  ' generation_id = :g) as m join (select * from `move_names` where '+
+  ' generation_id <= :g) as m join (select * from `move_names` where '+
   'local_language_id = :lid) as mn where m.id = mn.move_id';
 
   DB.Query.ParamByName('g').AsInteger := Gen;
