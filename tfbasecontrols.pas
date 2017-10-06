@@ -210,8 +210,8 @@ begin
    begin
      if ReadChar(False)>#0 then
        case ReadChar() of
-         'C': Position := Position - 1;
-         'D': Position := Position + 1;
+       'D': Position:=Max(0, Position-1);
+       'C': Position:=Min(Text.Length, Position+1);
        end
      else
        Result:=False;

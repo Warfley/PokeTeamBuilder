@@ -63,7 +63,20 @@ type
 
   TPrintMap = array of TPrintLine;
 
+    operator =(a,b: TColor24): Boolean;
+    operator =(a,b: TColor8): Boolean;
+
 implementation
+
+operator=(a, b: TColor24): Boolean;
+begin
+  result:=a.Color=b.Color;
+end;
+
+operator=(a, b: TColor8): Boolean;
+begin
+  result:=a.Color=b.Color;
+end;
 
 end.
 
