@@ -15,7 +15,8 @@ uses {$IFDEF UNIX}
   listrecords,
   pktb,
   TFTypes,
-  TFCanvas;
+  TFCanvas,
+  TFControls;
 
 type
 
@@ -217,9 +218,8 @@ end;
     m: TPoint;
     ts : String = '6';
     tc: String = '10';
+    tsLabel, tcLabel: TTFLabel;
   const
-    TeamSize = 'Team size';
-    TeamCount = 'Number of teams';
     GenTeams= 'Generate teams';
   begin
     FCanvas:=TTextCanvas.Create;
@@ -228,10 +228,15 @@ end;
        FCanvas.Resize(ws.Width-1, ws.Height-1);
        FCanvas.Clear;
        m := Point(FCanvas.Width div 2, FCanvas.Height div 2);
-       // Draw Text
-         FCanvas.SetColor(RGB(255,255,255), Transparency);
-         FCanvas.TextOut(m.x-(TeamSize.Length) div 2,m.y-5, TeamSize);
-         FCanvas.TextOut(m.x-(TeamCount.Length) div 2,m.y-2, TeamCount);
+       tsLabel:=TTFLabel.Create(FCanvas);
+       tcLabel:=TTFLabel.Create(FCanvas);
+       try
+         tsLabel.Text.Text:='Select team size';
+         tsLabel.Top:=m.y-5;
+         tsLabel.Left:=m.x-tsLabel.Width div 2;   
+         tcLabel.Text.Text:='Select team count';
+         tcLabel.Top:=m.y-2;
+         tcLabel.Left:=m.x-tcLabel.Width div 2;
        repeat
          // Draw Textboxes 
        //team size
@@ -259,6 +264,9 @@ end;
          FCanvas.Rectangle(m.x-10, m.y+1, 21,3); 
          FCanvas.SetColor(RGB(20,20,20),Transparency);
          FCanvas.TextOut(m.x-(GenTeams.Length div 2), m.y+2, GenTeams);
+
+         tcLabel.Redraw;
+         tsLabel.Redraw;
          FCanvas.Print();
          c:=ReadChar();
          case c of
@@ -275,6 +283,10 @@ end;
          #27: Exit;
          end;
        until False;
+       finally
+         tsLabel.Free;
+         tcLabel.Free;
+       end;
     finally
       FCanvas.Free;
     end;
