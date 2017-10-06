@@ -16,7 +16,8 @@ uses {$IFDEF UNIX}
   pktb,
   TFTypes,
   TFCanvas,
-  TFControls;
+  TFControls,
+  TFBaseControls, StartUpForm;
 
 type
 
@@ -212,85 +213,19 @@ end;
   end;
 
   procedure TPokeTeamBuilder.StartGraphicalCLI(DB: TDBConnection; TeamBuilder: TPKTB);
-  var ws: TWindowSize;
-    TabPos: Integer=0;
-    c: Char;
-    m: TPoint;
-    ts : String = '6';
-    tc: String = '10';
-    tsLabel, tcLabel: TTFLabel;
-  const
-    GenTeams= 'Generate teams';
+  var form: TTextForm;
   begin
     FCanvas:=TTextCanvas.Create;
     try
-       ws:=GetWindowSize;
-       FCanvas.Resize(ws.Width-1, ws.Height-1);
-       FCanvas.Clear;
-       m := Point(FCanvas.Width div 2, FCanvas.Height div 2);
-       tsLabel:=TTFLabel.Create(FCanvas);
-       tcLabel:=TTFLabel.Create(FCanvas);
-       try
-         tsLabel.Text.Text:='Select team size';
-         tsLabel.Top:=m.y-5;
-         tsLabel.Left:=m.x-tsLabel.Width div 2;   
-         tcLabel.Text.Text:='Select team count';
-         tcLabel.Top:=m.y-2;
-         tcLabel.Left:=m.x-tcLabel.Width div 2;
-       repeat
-         // Draw Textboxes 
-       //team size
-         if TabPos = 0 then
-            FCanvas.SetColor(RGB(255,255,100),RGB(0,0,0))
-         else
-            FCanvas.SetColor(RGB(255,255,255),RGB(0,0,0));
-         FCanvas.Rectangle(m.x-5, m.y-4,11,1);
-         FCanvas.SetColor(RGB(20,20,20),Transparency);
-         FCanvas.TextOut(m.x+5-ts.Length, m.y-4, ts);
-         //team count
-         if TabPos = 1 then
-            FCanvas.SetColor(RGB(255,255,0),RGB(0,0,0))
-         else
-            FCanvas.SetColor(RGB(255,255,255),RGB(0,0,0));
-         FCanvas.Rectangle(m.x-5, m.y-1,11,1);
-         FCanvas.SetColor(RGB(20,20,20),Transparency);
-         FCanvas.TextOut(m.x+5-tc.Length, m.y-1, tc);
-
-         // draw Button 
-         if TabPos = 2 then
-            FCanvas.SetColor(RGB(0,0,255),RGB(0,0,255))
-         else
-            FCanvas.SetColor(RGB(255,255,255),RGB(255,255,255));
-         FCanvas.Rectangle(m.x-10, m.y+1, 21,3); 
-         FCanvas.SetColor(RGB(20,20,20),Transparency);
-         FCanvas.TextOut(m.x-(GenTeams.Length div 2), m.y+2, GenTeams);
-
-         tcLabel.Redraw;
-         tsLabel.Redraw;
-         FCanvas.Print();
-         c:=ReadChar();
-         case c of
-         #8: if TabPos = 0 then
-               ts:=ts.Substring(1)
-             else if TabPos = 1 then
-               tc:=tc.Substring(1);
-         #9: TabPos:=(TabPos+1) mod 3;
-         '0'..'9': if TabPos = 0 then
-               ts:=c+ts
-             else if TabPos = 1 then
-               tc:=c+tc;
-         #13: if TabPos = 2 then Break;
-         #27: Exit;
-         end;
-       until False;
-       finally
-         tsLabel.Free;
-         tcLabel.Free;
-       end;
+      with TStartForm.Create(FCanvas) do
+      try
+        Show;
+      finally
+        Free;
+      end;
     finally
       FCanvas.Free;
     end;
-
   end;
 
   procedure TPokeTeamBuilder.TeamGenerated(const Team: TTeam);
@@ -320,7 +255,6 @@ end;
       Terminate;
       Exit;
     end;
-
     // parse parameters
     if HasOption('h', 'help') then
     begin
@@ -344,9 +278,6 @@ end;
     end;
     // stop program loop
     Terminate;
-    {$IfDef Windows}
-    ReadLn;
-    {$EndIf}
   end;
 
   constructor TPokeTeamBuilder.Create(TheOwner: TComponent);

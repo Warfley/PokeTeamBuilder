@@ -101,7 +101,7 @@
         <PackageName Value="sqlite3laz"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="7">
+    <Units Count="9">
       <Unit0>
         <Filename Value="PokeTeamBuilder.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -134,6 +134,16 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="TFControls"/>
       </Unit6>
+      <Unit7>
+        <Filename Value="tfbasecontrols.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="TFBaseControls"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="startupform.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="StartUpForm"/>
+      </Unit8>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

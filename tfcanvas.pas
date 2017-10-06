@@ -157,7 +157,11 @@ begin
         (irInputRecord.Event.KeyEvent.wVirtualKeyCode <> VK_MENU) and
         (irInputRecord.Event.KeyEvent.wVirtualKeyCode <> VK_CONTROL) then
       begin
-        Result := irInputRecord.Event.KeyEvent.AsciiChar;
+        if (irInputRecord.Event.KeyEvent.wVirtualKeyCode >=37) and
+          (irInputRecord.Event.KeyEvent.wVirtualKeyCode <=40) then
+           Result:=char(irInputRecord.Event.KeyEvent.wVirtualKeyCode-36)
+        else
+          Result := irInputRecord.Event.KeyEvent.AsciiChar;
         ReadConsoleInputA(hStdin, irInputRecord, 1, dwEventsRead);
         Exit;
       end
@@ -256,7 +260,7 @@ var
 begin
   C1.Color := A;
   C2.Color := B;
-  Result := abs(C1.R - C2.R) + abs(C1.G - C2.G) + abs(C1.B - C2.B);
+  Result := (C1.R - C2.R)**2 + (C1.G - C2.G)**2 + (C1.B - C2.B)**2;
 end;
 
 function FindTableIndex(C: cardinal; StartIndex: integer = 0): integer;
