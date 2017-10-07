@@ -30,9 +30,9 @@ type
     function ProcessChar(c: Char): Boolean; virtual;
   public
     procedure Close;
-    constructor Create(ACanvas: TTextCanvas);
+    constructor Create(ACanvas: TTextCanvas); virtual;
     destructor Destroy; override;
-    function Show: Boolean;
+    procedure Show;
     procedure Add(Ctrl: TTextControl);
     procedure Remove(Ctrl: TTextControl);
     property Canvas: TTextCanvas read FCanvas;
@@ -61,10 +61,12 @@ type
   protected   
     FChanged: Boolean;
     procedure Draw(ACanvas: TTextCanvas); virtual;
+    procedure Resize; virtual;
+    procedure ColorChange; virtual;
   public
     constructor Create(AParent: TTextForm);virtual;
     destructor Destroy; override;
-    procedure Update(FullRepaint: Boolean = false);
+    procedure Update(FullRepaint: Boolean = false); virtual;
     property Parent: TTextForm read FParent write SetParent;
     property Canvas: TTextCanvas read GetCanvas;
     property Left: Integer read FLeft write SetLeft;
@@ -116,8 +118,6 @@ begin
   FCanvas:=ACanvas;
   FControls:=TControlList.Create();
   FUserControls:=TUCList.Create(False);
-  FWidth:=ACanvas.Width;
-  FHeight:=ACanvas.Height;
 end;
 
 destructor TTextForm.Destroy;
@@ -127,7 +127,7 @@ begin
   inherited Destroy;
 end;
 
-function TTextForm.Show: Boolean;
+procedure TTextForm.Show;
 var c: Char;
   i: Integer;
   ws: TWindowSize;
@@ -203,14 +203,16 @@ end;
 procedure TUserControl.SetFBG(AValue: TColor);
 begin
   if FFocusedBG=AValue then Exit;
-  FFocusedBG:=AValue;
+  FFocusedBG:=AValue; 
+  ColorChange;
   FChanged:=FFocused;
 end;
 
 procedure TUserControl.SetFFG(AValue: TColor);
 begin
   if FFocusedFG=AValue then Exit;
-  FFocusedFG:=AValue;
+  FFocusedFG:=AValue; 
+  ColorChange;
   FChanged:=FFocused;
 end;
 
@@ -246,7 +248,8 @@ procedure TTextControl.SetBG(AValue: TColor);
 begin
   if FBackground=AValue then Exit;
   FBackground:=AValue;
-  FChanged:=True;
+  FChanged:=True;    
+  ColorChange;
 end;
 
 function TTextControl.GetCanvas: TTextCanvas;
@@ -259,12 +262,14 @@ begin
   if FForeground=AValue then Exit;
   FForeground:=AValue;
   FChanged:=True;
+  ColorChange;
 end;
 
 procedure TTextControl.SetHeight(AValue: Integer);
 begin
   if FHeight=AValue then Exit;
   FHeight:=AValue;
+  Resize;
   FChanged:=True;
 end;
 
@@ -297,6 +302,7 @@ procedure TTextControl.SetWidth(AValue: Integer);
 begin
   if FWidth=AValue then Exit;
   FWidth:=AValue;
+  Resize;
   FChanged:=True;
 end;
 
@@ -305,6 +311,16 @@ begin
   ACanvas.SetColor(Background, Background);
   ACanvas.Rectangle(Left,Top,Width,Height);
   ACanvas.SetColor(Foreground, Background);
+end;
+
+procedure TTextControl.Resize;
+begin
+  //NOOP
+end;
+
+procedure TTextControl.ColorChange;
+begin
+  //NOOP
 end;
 
 constructor TTextControl.Create(AParent: TTextForm);

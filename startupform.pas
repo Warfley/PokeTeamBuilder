@@ -24,7 +24,7 @@ type
     procedure Resize; override;
     function ProcessChar(c: Char): Boolean; override;
   public
-    constructor Create(ACanvas: TTextCanvas);
+    constructor Create(ACanvas: TTextCanvas); override;
     destructor Destroy; override;
     property TeamSize: Integer read FTeamSize;
     property TeamCount: Integer read FTeamCount;
@@ -56,8 +56,8 @@ begin
   TeamCountEdit.Left := m.x - (TeamCountEdit.Width div 2);
   TeamCountEdit.Top := m.y - 1;
 
-  Button.Left:=m.x-(Button.Width div 2);
-  Button.Top:=m.y + 1;
+  Button.Left:= Width-Button.Width-1;
+  Button.Top:=Height-Button.Height-1;
 end;
 
 function TStartForm.ProcessChar(c: Char): Boolean;

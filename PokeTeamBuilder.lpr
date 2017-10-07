@@ -17,7 +17,7 @@ uses {$IFDEF UNIX}
   TFTypes,
   TFCanvas,
   TFControls,
-  TFBaseControls, StartUpForm;
+  TFBaseControls, StartUpForm, CheckListForm, SelectionForm;
 
 type
 
@@ -26,15 +26,22 @@ type
   TPokeTeamBuilder = class(TCustomApplication)
   private
     FCanvas: TTextCanvas;
+    function SelectGenerationG(const Generations: TGenerationList): integer;
     function SelectGenerationSTD(const Generations: TGenerationList): integer;
+    function selectIG(const Pokemon: TPokemonList): TDynIntArray;
     function selectISTD(const Pokemon: TPokemonList): TDynIntArray;
+    function SelectLanguageG(const Languages: TLanguageList): integer;
     function SelectLanguageSTD(const Languages: TLanguageList): integer;
+    function SelectMovesG(const Moves: TMoveList): TDynIntArray;
     function SelectMovesSTD(const Moves: TMoveList): TDynIntArray;
+    function SelectOKG: TObtainableKinds;
     function SelectOKSTD: TObtainableKinds;
+    function SelectPG(const Pokemon: TPokemonList): TDynIntArray;
     function SelectPSTD(const Pokemon: TPokemonList): TDynIntArray;
     procedure StartGraphicalCLI(DB: TDBConnection; TeamBuilder: TPKTB);
     procedure StartStdCLI(DB: TDBConnection; TeamBuilder: TPKTB);
     procedure TeamGenerated(const Team: TTeam);
+    procedure TeamGeneratedG(const Team: TTeam);
   protected
     procedure DoRun; override;
   public
@@ -65,6 +72,17 @@ type
     until (Result > 0) and (Result < Generations.Count);
   end;
 
+function TPokeTeamBuilder.SelectGenerationG(const Generations: TGenerationList
+  ): integer;
+begin
+  Result:=1;
+end;
+
+function TPokeTeamBuilder.selectIG(const Pokemon: TPokemonList): TDynIntArray;
+begin
+  Result:=nil;
+end;
+
   function TPokeTeamBuilder.SelectISTD(const Pokemon: TPokemonList): TDynIntArray;
   var
     nme: string;
@@ -86,6 +104,23 @@ type
       end;
   end;
 
+function TPokeTeamBuilder.SelectLanguageG(const Languages: TLanguageList
+  ): integer;
+var
+  i: Integer;
+begin
+  with TSelectionForm.Create(FCanvas) do
+  try
+    Caption:='Select moves to be in your team';
+    for i:=0 to Languages.Count-1 do
+      ListBox.Items.Add(Languages[i].Name);
+    Show;
+    Result:=ListBox.ItemIndex;
+  finally
+    Free;
+  end;
+end;
+
   function TPokeTeamBuilder.SelectLanguageSTD(const Languages: TLanguageList): integer;
   var
     i: integer;
@@ -104,6 +139,21 @@ type
       end;
     until (Result > 0) and (Result < Languages.Count);
   end;
+
+function TPokeTeamBuilder.SelectMovesG(const Moves: TMoveList): TDynIntArray;
+var
+  i: Integer;
+begin
+  with TCheckListForm.Create(FCanvas) do
+  try
+    Caption:='Select moves to be in your team';
+    for i:=0 to Moves.Count-1 do
+      SelectionList.Items.Add(Moves[i].AttackName);
+    Show;
+  finally
+    Free;
+  end;
+end;
 
   function TPokeTeamBuilder.SelectMovesSTD(const Moves: TMoveList): TDynIntArray;
   var
@@ -124,6 +174,11 @@ type
         WriteLn('Invalid name')
     until False;
   end;
+
+function TPokeTeamBuilder.SelectOKG: TObtainableKinds;
+begin
+
+end;
 
   function TPokeTeamBuilder.SelectOKSTD: TObtainableKinds;
   function GetOk(str: String; out o: TObtainableKind): Boolean;
@@ -159,6 +214,11 @@ end;
       sl.Free;
     end;
   end;
+
+function TPokeTeamBuilder.SelectPG(const Pokemon: TPokemonList): TDynIntArray;
+begin
+
+end;
 
   function TPokeTeamBuilder.SelectPSTD(const Pokemon: TPokemonList): TDynIntArray;
   var
@@ -213,16 +273,22 @@ end;
   end;
 
   procedure TPokeTeamBuilder.StartGraphicalCLI(DB: TDBConnection; TeamBuilder: TPKTB);
-  var form: TTextForm;
+  var
+    c, s: Integer;
   begin
     FCanvas:=TTextCanvas.Create;
     try
       with TStartForm.Create(FCanvas) do
       try
         Show;
+        c:=TeamCount;
+        s:=TeamSize;
       finally
         Free;
       end;
+    TeamBuilder.GenerateTeams(s, c, @SelectLanguageG, @SelectGenerationG,
+      @SelectMovesG, @SelectOKG, @SelectPG,
+      @selectIG, @TeamGeneratedG);
     finally
       FCanvas.Free;
     end;
@@ -240,6 +306,11 @@ end;
     for i:=0 to length(Team.Strength)-1 do
       WriteLn(Team.Strength[i].Name,': ', Team.Strength[i].Factor);
   end;
+
+procedure TPokeTeamBuilder.TeamGeneratedG(const Team: TTeam);
+begin
+
+end;
 
   procedure TPokeTeamBuilder.DoRun;
   var

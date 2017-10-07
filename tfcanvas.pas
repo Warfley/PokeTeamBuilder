@@ -56,6 +56,10 @@ type
     property Obj[x, y: integer]: TPrintObject read GetObj write SetObj; default;
   end;
 
+
+type
+  TArrowKey = (akNone, akLeft, akUp, akDown, akRight);
+
 const
   {$IfDef Col24}
   Transparency: TColor = (Color: $00000000);
@@ -83,6 +87,7 @@ function GetWindowSize: TWindowSize;
 // Reads a char without the need of enter
 function ReadChar(Blocking: boolean = True): char;
 function LCLColToCanvasColor(Col: cardinal): TColor;
+function GetArrow(c: Char): TArrowKey;
 
 {$If defined(COL8) or defined(Col4)}
 function FindTableIndex(C: cardinal; StartIndex: integer = 0): integer;
@@ -92,6 +97,30 @@ const
 {$EndIf}
 
 implementation
+
+function GetArrow(c: Char): TArrowKey;
+begin
+  Result:=akNone;
+  case c of
+  {$IfDef UNIX}
+  #27:
+   begin
+     if ReadChar(False)>#0 then
+       case ReadChar() of
+       'A': Result:=akUp;
+       'B': Result:=akDown;
+       'C': Result:=akRight;
+       'D': Result:=akLeft;
+       end;
+   end;
+  {$Else}
+  #1: Result:=akLeft;
+  #2: Result:=akUp;
+  #3: Result:=akRight;
+  #4: Result:=akDown;
+  {$EndIf}
+  end;
+end;
 
 {$IfDef UNIX}
 
