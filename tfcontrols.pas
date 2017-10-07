@@ -91,6 +91,7 @@ type
     procedure SetFocused(AValue: Boolean);
   protected
     procedure Draw(ACanvas: TTextCanvas); override;
+    procedure FocusChanged; virtual;
   public
     function ProcessChar(c: Char): Boolean; virtual; abstract;
     property Focused: Boolean read FFocused write SetFocused;
@@ -221,6 +222,7 @@ begin
   if FFocused=AValue then Exit;
   FFocused:=AValue;
   FChanged:=True;
+  FocusChanged;
 end;
 
 procedure TUserControl.Draw(ACanvas: TTextCanvas);
@@ -240,6 +242,11 @@ begin
     Foreground:=fg;
     Background:=bg;
   end;
+end;
+
+procedure TUserControl.FocusChanged;
+begin
+  //NOOP
 end;
 
 { TTextControl }

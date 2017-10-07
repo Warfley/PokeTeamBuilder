@@ -30,6 +30,7 @@ type
     procedure Draw(ACanvas: TTextCanvas); override;
     procedure Resize; override;
     procedure ColorChange; override;
+    procedure FocusChanged; override;
   public
     procedure FullReadraw;
     function ProcessChar(c: Char): Boolean; override;
@@ -67,6 +68,7 @@ type
     procedure Draw(ACanvas: TTextCanvas); override;
     procedure Resize; override;
     procedure ColorChange; override;
+    procedure FocusChanged; override;
   public
     procedure FullReadraw;
     function ProcessChar(c: Char): Boolean; override;
@@ -201,7 +203,8 @@ begin
 end;
 
 procedure TTFListBox.Draw(ACanvas: TTextCanvas);
-var fg, bg, i, x, j: Integer;
+var i, x, j: Integer;
+  fg, bg: TColor;
   str,s: String;
 begin
   if Focused then
@@ -266,6 +269,12 @@ procedure TTFListBox.ColorChange;
 begin
   inherited ColorChange;
   FullReadraw;
+end;
+
+procedure TTFListBox.FocusChanged;
+begin
+  inherited FocusChanged;
+  FUpdateRows.Add(Pointer(ItemIndex));
 end;
 
 procedure TTFListBox.FullReadraw;
@@ -386,7 +395,8 @@ begin
 end;
 
 procedure TTFCheckListBox.Draw(ACanvas: TTextCanvas);
-var fg, bg, i, x, j: Integer;
+var i, x, j: Integer;
+  fg, bg: TColor;
   str,s: String;
   mark: Char;
 begin
@@ -454,6 +464,12 @@ procedure TTFCheckListBox.ColorChange;
 begin
   inherited ColorChange;
   FullReadraw;
+end;
+
+procedure TTFCheckListBox.FocusChanged;
+begin
+  inherited FocusChanged;
+  FUpdateRows.Add(Pointer(ItemIndex));
 end;
 
 procedure TTFCheckListBox.FullReadraw;
