@@ -12,6 +12,8 @@ type
   TTextControl = class;
   TUserControl = class;
 
+  ESignalInterrupt = class(Exception);
+
   TControlList = specialize TFPGObjectList<TTextControl>;
   TUCList = specialize TFPGObjectList<TUserControl>;
 
@@ -193,7 +195,9 @@ end;
 begin
   Result:=True;
   if inp=#9 then
-        SetFocus(FUserControls[Roll(FTabPosition+1)])
+    SetFocus(FUserControls[Roll(FTabPosition+1)])
+  else if inp = #27'[Z' then
+    SetFocus(FUserControls[Roll(FTabPosition-1)])
   else
     Result:=False;
 end;
@@ -260,6 +264,7 @@ begin
       FControls[i].Update(f);
     FCanvas.Print(f);
     inp:=ReadSequence;
+    if inp= #3 then raise ESignalInterrupt.Create('Control+c hit');
     f:=False;
     if FUserControls.Count>0 then
       if FUserControls[FTabPosition].ProcessInput(inp) then

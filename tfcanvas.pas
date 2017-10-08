@@ -115,10 +115,10 @@ begin
        end;
    end;
   {$Else}
-  #1: Result:=akLeft;
-  #2: Result:=akUp;
-  #3: Result:=akRight;
-  #4: Result:=akDown;
+  #4: Result:=akLeft;
+  #5: Result:=akUp;
+  #6: Result:=akRight;
+  #7: Result:=akDown;
   {$EndIf}
   end;
 end;
@@ -218,7 +218,7 @@ begin
       begin
         if (irInputRecord.Event.KeyEvent.wVirtualKeyCode >=37) and
           (irInputRecord.Event.KeyEvent.wVirtualKeyCode <=40) then
-           Result:=char(irInputRecord.Event.KeyEvent.wVirtualKeyCode-36)
+           Result:=char(irInputRecord.Event.KeyEvent.wVirtualKeyCode-33)
         else
           Result := irInputRecord.Event.KeyEvent.AsciiChar;
         ReadConsoleInputA(hStdin, irInputRecord, 1, dwEventsRead);
