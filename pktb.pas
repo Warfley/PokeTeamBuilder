@@ -78,7 +78,14 @@ var
   pkmn: TPokemon;
   w, j, i: Integer;
   t: TTypeStrength;
+  c: Integer;
 begin
+  for i:=0 to Length(Team.Pokemon)-1 do
+    if Team.Pokemon[i].ID=0 then
+    begin
+      c:=i;
+      break;
+    end;
   CalcStrength(Team);
   if Count = 0 then
     exit;
@@ -99,7 +106,7 @@ begin
     if j<0 then j:=FStrengthTable.FindType(1);
     t:=FStrengthTable[j];
     for j := 0 to Length(t.Factors) - 1 do
-      if GetStrength(t.Factors[j].TID, Team) = 0 then
+      if GetStrength(t.Factors[j].TID, Team) < ((c+1)*100)  then
         inc(w, t.Factors[j].Factor div FactorDivisor);
     if pkmn.Type2>0 then
     begin
@@ -107,10 +114,10 @@ begin
     if j<0 then j:=FStrengthTable.FindType(1);
     t:=FStrengthTable[j];
       for j := 0 to Length(t.Factors) - 1 do
-        if GetStrength(t.Factors[j].TID, Team) = 0 then
+        if GetStrength(t.Factors[j].TID, Team) < ((c+1)*100) then
           inc(w, t.Factors[j].Factor div FactorDivisor);
     end;
-    Weight[i]:=w+Random(Count**Shuffle);
+    Weight[i]:=w+Random(Max(Count-(Length(Team.Pokemon) div 2)+1, 0)**Shuffle);
   end;
   i:=-1;
   j:=-1;

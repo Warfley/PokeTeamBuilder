@@ -359,9 +359,9 @@ begin
   Result.G := G;
   Result.B := B;
   {$Else}
-  Ref.R := R;
+  Ref.R := {$IfDef COL4}B {$Else}R{$EndIf};
   Ref.G := G;
-  Ref.B := B;
+  Ref.B := {$IfDef COL4}R {$Else}B{$EndIf};
   Ref.Opc := 0;
   {$IfDef COL8}
   Result.Opc := 100;

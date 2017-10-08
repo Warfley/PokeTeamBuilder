@@ -139,9 +139,9 @@ begin
       TeamStats[i][0].Text.Text:=Team.Strength[i].Name;
       TeamStats[i][1]:=TTFLabel.Create(Self);
       TeamStats[i][1].Text.Text:=Team.Strength[i].Factor.ToString;
-      if Team.Strength[i].Factor <= 650 then
+      if Team.Strength[i].Factor <= Length(Team.Pokemon)*100+100 then
         TeamStats[i][1].Foreground:=RGB(255,0,0)
-      else if Team.Strength[i].Factor <= 900 then
+      else if Team.Strength[i].Factor <= Length(Team.Pokemon)*150+100 then
         TeamStats[i][1].Foreground:=RGB(255,255,0)
       else
         TeamStats[i][1].Foreground:=RGB(0,255,0);

@@ -125,6 +125,9 @@ type
     procedure Update(FullRepaint: Boolean=false); override;
   end;
 
+  const
+    HighDiff = {$IfDef WINDOWS}2{$Else}1{$EndIf};
+
 implementation
 
 { TDeltaUpdateControl }
@@ -249,10 +252,10 @@ begin
     f:=forceUpdate;
     forceUpdate:=False;
     ws:=GetWindowSize;
-    if (ws.Width<>Width+1) or (ws.Height<>Height+1) then
+    if (ws.Width<>Width) or (ws.Height<>Height + HighDiff) or forceUpdate then
     begin
-      FCanvas.Resize(ws.Width, ws.Height-1);
-      FHeight:=ws.Height-1;
+      FCanvas.Resize(ws.Width, ws.Height-HighDiff);
+      FHeight:=ws.Height-HighDiff;
       FWidth:=ws.Width;
       Resize;
       f:=True;
@@ -264,7 +267,7 @@ begin
       FControls[i].Update(f);
     FCanvas.Print(f);
     inp:=ReadSequence;
-    if inp= #3 then raise ESignalInterrupt.Create('Control+c hit');
+    {$IfDef UNIX}if inp= #3 then raise ESignalInterrupt.Create('Control+c hit'); {$EndIf}
     f:=False;
     if FUserControls.Count>0 then
       if FUserControls[FTabPosition].ProcessInput(inp) then

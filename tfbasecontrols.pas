@@ -234,7 +234,7 @@ begin
   Foreground:=RGB(0,0,0);
   FCursorColor:=RGB(196,196,196);
   FocusedBackground:=RGB(0,255,255);
-  FocusedForeground:=Foreground;
+  FocusedForeground:=Background;
   FText:='Edit';
   FCursorPos:=FText.Length;
 end;

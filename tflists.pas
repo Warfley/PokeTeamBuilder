@@ -102,12 +102,12 @@ procedure TTFCheckListBox.SetChecked(Index: IntPtr; AValue: Boolean);
 begin
   Items.OnChange:=nil;
   try
-  if AValue then
+  if AValue and not Checked[Index] then
   begin
     Items.Objects[Index]:=TObject(-1);
     inc(FCheckCount);
   end
-  else
+  else if not AValue and Checked[Index] then
   begin
     Items.Objects[Index]:=TObject(0);
     Dec(FCheckCount);
