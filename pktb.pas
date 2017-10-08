@@ -44,6 +44,8 @@ type
       SelectMoves: TSelectMovesEvent; SelectObtainableKinds: TSelectObtainKindsEvent;
       SelectPokemon: TSelectPokemonEvent; SelectIgnore: TSelectIgnoresEvent;
       TeamGenerated: TTeamGeneratedEvent);
+    property Moves: TMoveList read FMoves;
+    property StrengthTable: TStrengthTable read FStrengthTable;
   end;
 
 const

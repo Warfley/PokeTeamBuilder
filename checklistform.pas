@@ -26,6 +26,7 @@ type
     procedure SetCaption(AValue: String);
   protected
     procedure Resize; override;
+    function ProcessChar(c: Char; Shift: TShiftState): Boolean; override;
   public
     constructor Create(ACanvas: TTextCanvas); override;
     property SelectionList: TTFCheckListBox read ListBox;
@@ -90,6 +91,16 @@ begin
 
     Continue.Left:=Width-Continue.Width-1;
     Continue.Top:=Height-Continue.Height-1;
+end;
+
+function TCheckListForm.ProcessChar(c: Char; Shift: TShiftState): Boolean;
+begin
+  Result:=inherited ProcessChar(c, Shift);
+  if not Result and (c=#13) then
+  begin
+    Result:=True;
+    Close;
+  end;
 end;
 
 constructor TCheckListForm.Create(ACanvas: TTextCanvas);

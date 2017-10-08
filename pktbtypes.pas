@@ -74,8 +74,6 @@ type
     function FindType(TypeID: Integer): Integer;
   end;
 
-
-
 const
   FullKinds = [okCatchable, okSwarm, okDualSlot, okRecieved, okEvolves,
   okBackEvolve, okEvent];

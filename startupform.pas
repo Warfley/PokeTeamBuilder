@@ -62,8 +62,12 @@ end;
 
 function TStartForm.ProcessChar(c: Char; Shift: TShiftState): Boolean;
 begin
-  if c=#13 then ButtonClicked(Nil);
-  Result:=inherited ProcessChar(c, Shift) or (c=#13);
+  Result:=inherited ProcessChar(c, Shift);
+  if not Result and (c=#13) then
+  begin
+    Result:=True;
+    ButtonClicked(nil);
+  end;
 end;
 
 constructor TStartForm.Create(ACanvas: TTextCanvas);

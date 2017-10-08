@@ -21,7 +21,7 @@ uses {$IFDEF UNIX}
   StartUpForm,
   CheckListForm,
   SelectionForm,
-  TFLists;
+  TFLists, ShowTeamForm;
 
 type
 
@@ -30,6 +30,7 @@ type
   TPokeTeamBuilder = class(TCustomApplication)
   private
     FCanvas: TTextCanvas;
+    FPKTB: TPKTB;
     function SelectGenerationG(const Generations: TGenerationList): integer;
     function SelectGenerationSTD(const Generations: TGenerationList): integer;
     function selectIG(const Pokemon: TPokemonList): TDynIntArray;
@@ -45,7 +46,7 @@ type
     procedure StartGraphicalCLI(DB: TDBConnection; TeamBuilder: TPKTB);
     procedure StartStdCLI(DB: TDBConnection; TeamBuilder: TPKTB);
     procedure TeamGenerated(const Team: TTeam);
-    procedure TeamGeneratedG(const Team: TTeam);
+    procedure TeamGeneratedG(const ATeam: TTeam);
   protected
     procedure DoRun; override;
   public
@@ -366,6 +367,7 @@ end;
   var
     c, s: Integer;
   begin
+    FPKTB:=TeamBuilder;
     FCanvas:=TTextCanvas.Create;
     try
       with TStartForm.Create(FCanvas) do
@@ -397,9 +399,16 @@ end;
       WriteLn(Team.Strength[i].Name,': ', Team.Strength[i].Factor);
   end;
 
-procedure TPokeTeamBuilder.TeamGeneratedG(const Team: TTeam);
+procedure TPokeTeamBuilder.TeamGeneratedG(const ATeam: TTeam);
 begin
-
+  with TShowTeamForm.Create(FCanvas) do
+  try
+    PKTB:=FPKTB;
+    Team:=ATeam;
+    Show;
+  finally
+    Free;
+  end;
 end;
 
   procedure TPokeTeamBuilder.DoRun;

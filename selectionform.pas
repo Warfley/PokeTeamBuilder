@@ -65,8 +65,12 @@ end;
 
 function TSelectionForm.ProcessChar(c: Char; Shift: TShiftState): Boolean;
 begin
-  if c=#13 then Close;
-  Result:=inherited ProcessChar(c, Shift) or (c=#13);
+  Result:=inherited ProcessChar(c, Shift);
+  if not Result and (c=#13) then
+  begin
+    Result:=True;
+    Close;
+  end;
 end;
 
 constructor TSelectionForm.Create(ACanvas: TTextCanvas);

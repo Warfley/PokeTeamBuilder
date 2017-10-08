@@ -33,7 +33,7 @@ type
     procedure Close;
     constructor Create(ACanvas: TTextCanvas); virtual;
     destructor Destroy; override;
-    procedure Show;
+    procedure Show; virtual;
     procedure Add(Ctrl: TTextControl);
     procedure Remove(Ctrl: TTextControl);
     property Canvas: TTextCanvas read FCanvas;
@@ -187,11 +187,6 @@ begin
       SetFocus(FUserControls[Roll(FTabPosition-1)])
       else
         SetFocus(FUserControls[Roll(FTabPosition+1)]);
-  #27:
-      {$IfDef UNIX}
-      if ReadChar(False)=0 then
-      {$EndIf}
-      Close;
   else
     Result:=False;
   end;

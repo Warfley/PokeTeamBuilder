@@ -84,7 +84,12 @@ implementation
 { TTFCheckListBox }
 
 procedure TTFCheckListBox.ItemsChanged(Sender: TObject);
+var
+  i: Integer;
 begin
+  FCheckCount:=0;
+  for i:=0 to Items.Count-1 do
+    if IntPtr(Items.Objects[i])<>0 then inc(FCheckCount); 
   FullReadraw;
 end;
 
@@ -98,9 +103,15 @@ begin
   Items.OnChange:=nil;
   try
   if AValue then
-    Items.Objects[Index]:=TObject(-1)
+  begin
+    Items.Objects[Index]:=TObject(-1);
+    inc(FCheckCount);
+  end
   else
+  begin
     Items.Objects[Index]:=TObject(0);
+    Dec(FCheckCount);
+  end;
   finally
     items.OnChange:=@ItemsChanged;
   end;
@@ -127,7 +138,7 @@ function TTFCheckListBox.ProcessChar(c: char; Shift: TShiftState): boolean;
 begin
   Result:=inherited ProcessChar(c, Shift);
   if not Result then
-    if c in [#13, ' '] then
+    if c = ' ' then
     begin
       Checked[ItemIndex]:=not Checked[ItemIndex];
       Result:=True;
@@ -180,20 +191,21 @@ end;
 
 procedure TTFListControl.SetItemIndex(AValue: IntPtr);
 begin
-  if Assigned(FOnSelect) then
-    FOnSelect(Self);
   if FItemIndex = AValue then
     Exit;
   UpdateRow(FItemIndex);
   FItemIndex := AValue;
   UpdateRow(FItemIndex);
 
+  if Assigned(FOnSelect) then
+    FOnSelect(Self);
+
   if (ItemIndex < 0) or (ItemIndex >= GetItemCount) then
     Exit;
   if (ItemIndex < TopRow) then
-    TopRow := Max(0, ItemIndex - Height - 1)
+    TopRow := Max(0, ItemIndex - Height + 1)
   else if ItemIndex > TopRow + Height - 1 then
-    TopRow := Min(ItemIndex, GetItemCount - Height - 1);
+    TopRow := Min(ItemIndex, GetItemCount - Height);
   // fchanged gets set by UpdateRow
 end;
 
@@ -257,9 +269,8 @@ begin
     else
       ACanvas.SetColor(Foreground, Background);
     str := GetItem(i);
-    SetLength(s, Width);
+    SetLength(s, Width-1);
     s[1] := ' ';
-    s[Width] := ' ';
     for x := 1 to Width - 2 do
       if x <= str.Length then
         s[x + 1] := str[x]
@@ -274,8 +285,22 @@ var
   i, j, x: IntPtr;
   s, str: string;
   fg, bg: TColor;
+  d: Double;
+  l: Integer;
+  p: Integer;
 begin
   inherited Draw(ACanvas);
+  if Height<GetItemCount then
+  begin
+    d:=Height/GetItemCount;
+    l:=Max(1,trunc(d*Height));
+    p:=TopRow div Height;
+    if TopRow=0 then p:=0
+    else if TopRow=GetItemCount-Height then
+      p:=Height-l-1;
+    for i:=0 to l do
+      ACanvas.TextOut(Left+Width-1, Top+p+i,'|');
+  end;
   if Focused then
   begin
     fg:=SelectionForeground;
@@ -293,9 +318,8 @@ begin
     else
       ACanvas.SetColor(Foreground, Background);
     str := GetItem(i);
-    SetLength(s, Width);
+    SetLength(s, Width-1);
     s[1] := ' ';
-    s[Width] := ' ';
     for x := 1 to Width - 2 do
       if x <= str.Length then
         s[x + 1] := str[x]
@@ -319,12 +343,12 @@ end;
 
 function TTFListControl.ProcessChar(c: char; Shift: TShiftState): boolean;
 
-  function Roll(pos: integer): integer;
+  function Roll(p: integer): integer;
   begin
-    if pos < 0 then
-      Result := pos + GetItemCount
+    if p >= 0 then
+      Result := p mod GetItemCount
     else
-      Result := pos mod GetItemCount;
+      Result := p + GetItemCount;
   end;
 
 begin
