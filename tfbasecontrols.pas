@@ -37,7 +37,7 @@ type
     FOnChange: TNotifyEvent;
     FText: String;
     FAlign: TAlign;
-    FCursorPos: SizeInt;
+    FCursorPos: Integer;
     FCursorColor: TColor;
     procedure SetAlign(AValue: TAlign);
     procedure SetCursorColor(AValue: TColor);

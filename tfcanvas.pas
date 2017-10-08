@@ -132,22 +132,22 @@ begin
   {$Else}
   SetLength(Result, 1);
   Result[1]:=ReadChar(Blocking);
-  if Result[1] = 0 then
+  if Result[1] = #0 then
   begin
     SetLength(Result, 0);
     Exit;
   end
-  else if Result[1] <> #27 then exit
+  else if Result[1] <> #27 then exit;
   l:=1;
   repeat
     c:=ReadChar(False);
-    if c>0 then
+    if c>#0 then
     begin 
       inc(l);
       if l>Result.Length then SetLength(Result, Result.Length*2);
       Result[l] := c;
     end;
-  until c = 0;
+  until c = #0;
   SetLength(Result, l);
   {$EndIf}
 end;

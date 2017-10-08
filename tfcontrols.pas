@@ -247,9 +247,9 @@ begin
     ws:=GetWindowSize;
     if (ws.Width<>Width+1) or (ws.Height<>Height+1) then
     begin
-      FCanvas.Resize(ws.Width-1, ws.Height-1);
+      FCanvas.Resize(ws.Width, ws.Height-1);
       FHeight:=ws.Height-1;
-      FWidth:=ws.Width-1;
+      FWidth:=ws.Width;
       Resize;
       f:=True;
       FCanvas.Clear;
