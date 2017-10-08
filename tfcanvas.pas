@@ -87,7 +87,8 @@ function GetWindowSize: TWindowSize;
 // Reads a char without the need of enter
 function ReadChar(Blocking: boolean = True): char;
 function LCLColToCanvasColor(Col: cardinal): TColor;
-function GetArrow(c: Char): TArrowKey;
+function GetArrow(seq: String): TArrowKey;    
+function ReadSequence(Blocking: Boolean = True): String;
 
 {$If defined(COL8) or defined(Col4)}
 function FindTableIndex(C: cardinal; StartIndex: integer = 0): integer;
@@ -98,15 +99,15 @@ const
 
 implementation
 
-function GetArrow(c: Char): TArrowKey;
+function GetArrow(seq: String): TArrowKey;
 begin
   Result:=akNone;
-  case c of
+  case seq[1] of
   {$IfDef UNIX}
   #27:
    begin
-     if ReadChar(False)>#0 then
-       case ReadChar() of
+     if seq.length=3 then
+       case seq[3] of
        'A': Result:=akUp;
        'B': Result:=akDown;
        'C': Result:=akRight;
@@ -120,6 +121,35 @@ begin
   #4: Result:=akDown;
   {$EndIf}
   end;
+end;
+
+function ReadSequence(Blocking: Boolean = True): String;
+var c: Char;
+  l: Integer;
+begin
+  {$IfDef WINDOWS}
+  Result:=ReadChar(Blocking);
+  {$Else}
+  SetLength(Result, 1);
+  Result[1]:=ReadChar(Blocking);
+  if Result[1] = 0 then
+  begin
+    SetLength(Result, 0);
+    Exit;
+  end
+  else if Result[1] <> #27 then exit
+  l:=1;
+  repeat
+    c:=ReadChar(False);
+    if c>0 then
+    begin 
+      inc(l);
+      if l>Result.Length then SetLength(Result, Result.Length*2);
+      Result[l] := c;
+    end;
+  until c = 0;
+  SetLength(Result, l);
+  {$EndIf}
 end;
 
 {$IfDef UNIX}

@@ -28,7 +28,7 @@ type
     procedure PokemonSelected(Sender: TObject);
   protected
     procedure Resize; override;
-    function ProcessChar(c: Char; Shift: TShiftState): Boolean; override;
+    function ProcessInput(inp: String): Boolean; override;
   public
     procedure Show; override;
     property PKTB: TPKTB read FPKTB write FPKTB;
@@ -119,10 +119,10 @@ begin
     NextButton.Left:=Width-NextButton.Width-1;
 end;
 
-function TShowTeamForm.ProcessChar(c: Char; Shift: TShiftState): Boolean;
+function TShowTeamForm.ProcessInput(inp: String): Boolean;
 begin
-  Result:=inherited ProcessChar(c, Shift);
-  if not Result and (c=#13) then
+  Result:=inherited ProcessInput(inp);
+  if not Result and (inp=#13) then
   begin
     Result:=True;
     Close;

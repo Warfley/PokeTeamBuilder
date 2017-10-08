@@ -30,7 +30,7 @@ type
     procedure SetBackground(AValue: TColor);
   protected
     procedure Resize; virtual; abstract;   
-    function ProcessChar(c: Char; Shift: TShiftState): Boolean; virtual;
+    function ProcessInput(inp: String): Boolean; virtual;
   public
     procedure SetFocus(Item: TUserControl);
     procedure Close;
@@ -99,7 +99,7 @@ type
     procedure Draw(ACanvas: TTextCanvas); override;
     procedure FocusChanged; virtual;
   public
-    function ProcessChar(c: Char; Shift: TShiftState): Boolean; virtual; abstract;
+    function ProcessInput(inp: String): Boolean; virtual; abstract;
     property Focused: Boolean read FFocused write SetFocused;
     property FocusedForeground: TColor read FFocusedFG write SetFFG;
     property FocusedBackground: TColor read FFocusedBG write SetFBG;
@@ -181,7 +181,7 @@ begin
   ForceUpdate:=True;
 end;
 
-function TTextForm.ProcessChar(c: Char; Shift: TShiftState): Boolean;
+function TTextForm.ProcessInput(inp: String): Boolean;
 function Roll(i: Integer): Integer;
 begin
   if i<0 then
@@ -192,15 +192,10 @@ end;
 
 begin
   Result:=True;
-  case c of
-  #9:
-      if ssShift in Shift then
-      SetFocus(FUserControls[Roll(FTabPosition-1)])
-      else
-        SetFocus(FUserControls[Roll(FTabPosition+1)]);
+  if inp=#9 then
+        SetFocus(FUserControls[Roll(FTabPosition+1)])
   else
     Result:=False;
-  end;
 end;
 
 procedure TTextForm.SetFocus(Item: TUserControl);
@@ -239,11 +234,11 @@ begin
 end;
 
 procedure TTextForm.Show;
-var c: Char;
+var
   i: Integer;
   ws: TWindowSize;
   f: Boolean;
-  ss: TShiftState;
+  inp: String;
 begin
   Closed:=False;
   repeat 
@@ -264,16 +259,15 @@ begin
     for i :=0 to FControls.Count-1 do
       FControls[i].Update(f);
     FCanvas.Print(f);
-    c:=ReadChar();
-    ss:=GetKeyShiftState;
+    inp:=ReadSequence;
     f:=False;
     if FUserControls.Count>0 then
-      if FUserControls[FTabPosition].ProcessChar(c,ss) then
+      if FUserControls[FTabPosition].ProcessInput(inp) then
       begin
-        c := #0;
+        inp:='';
         f:=True;
       end;
-    if not f then ProcessChar(c,ss)
+    if not f then ProcessInput(inp)
   until Closed;
 end;
 

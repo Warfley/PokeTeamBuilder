@@ -46,7 +46,7 @@ type
   protected
     procedure Draw(ACanvas: TTextCanvas); override;
   public
-    function ProcessChar(c: Char; Shift: TShiftState): Boolean; override;
+    function ProcessInput(inp: String): Boolean; override;
     constructor Create(AParent: TTextForm); override;
     destructor Destroy; override;
     property NumbersOnly: Boolean read FNumbersOnly write FNumbersOnly;
@@ -69,7 +69,7 @@ type
   protected
     procedure Draw(ACanvas: TTextCanvas); override;
   public
-    function ProcessChar(c: Char; Shift: TShiftState): Boolean; override;
+    function ProcessInput(inp: String): Boolean; override;
     constructor Create(AParent: TTextForm); override;
     property OnClick: TNotifyEvent read FOnClick write FOnClick;
     property Caption: String read FCaption write SetCaption;
@@ -108,9 +108,9 @@ begin
     end;
 end;
 
-function TTFButton.ProcessChar(c: Char; Shift: TShiftState): Boolean;
+function TTFButton.ProcessInput(inp: String): Boolean;
 begin
-  Result:=c=#13;
+  Result:=inp=#13;
   if Result and Assigned(FOnClick) then FOnClick(Self);
 end;
 
@@ -193,15 +193,15 @@ begin
   end;
 end;
 
-function TTFEdit.ProcessChar(c: Char; Shift: TShiftState): Boolean;
+function TTFEdit.ProcessInput(inp: String): Boolean;
 begin
   Result:=True;
-  case GetArrow(c) of
+  case GetArrow(inp) of
   akLeft: Position:=Max(0, Position-1);
   akRight: Position:=Min(Text.Length, Position+1);
   akUp, akDown: Result:=False;
   akNone:
-    case c of
+    case inp[1] of
     #8:
      begin
        // FText because of FCursorPos
@@ -212,9 +212,9 @@ begin
         FOnChange(Self);
      end;
     #33..#254:
-     if (NumbersOnly and (c in ['0'..'9'])) or not NumbersOnly then
+     if (NumbersOnly and (inp[1] in ['0'..'9'])) or not NumbersOnly then
      begin
-      Text:=FText.Substring(0, FCursorPos)+c+FText.Substring(FCursorPos);
+      Text:=FText.Substring(0, FCursorPos)+inp[1]+FText.Substring(FCursorPos);
        inc(FCursorPos);
        if Assigned(FOnChange) then
         FOnChange(Self);

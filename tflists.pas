@@ -31,7 +31,7 @@ type
     procedure UpdateRow(Row: IntPtr); virtual;
     procedure DrawDone; override;
   public
-    function ProcessChar(c: char; Shift: TShiftState): boolean; override;
+    function ProcessInput(inp: String): boolean; override;
     constructor Create(AParent: TTextForm); override;
     destructor Destroy; override;
     property OnSelect: TNotifyEvent read FOnSelect write FOnSelect;
@@ -70,7 +70,7 @@ type
     function GetItem(Index: IntPtr): string; override;
     function GetItemCount: IntPtr; override;
   public
-    function ProcessChar(c: char; Shift: TShiftState): boolean; override;
+    function ProcessInput(inp: String): boolean; override;
     constructor Create(AParent: TTextForm); override;
     destructor Destroy; override;
     property Checked[Index: IntPtr]: Boolean read getChecked write SetChecked;
@@ -134,11 +134,11 @@ begin
   Result:=Items.Count;
 end;
 
-function TTFCheckListBox.ProcessChar(c: char; Shift: TShiftState): boolean;
+function TTFCheckListBox.ProcessInput(inp: String): boolean;
 begin
-  Result:=inherited ProcessChar(c, Shift);
+  Result:=inherited ProcessInput(inp);
   if not Result then
-    if c = ' ' then
+    if inp = ' ' then
     begin
       Checked[ItemIndex]:=not Checked[ItemIndex];
       Result:=True;
@@ -341,7 +341,7 @@ begin
   FUpdateRows.Clear;
 end;
 
-function TTFListControl.ProcessChar(c: char; Shift: TShiftState): boolean;
+function TTFListControl.ProcessInput(inp: String): boolean;
 
   function Roll(p: integer): integer;
   begin
@@ -353,7 +353,7 @@ function TTFListControl.ProcessChar(c: char; Shift: TShiftState): boolean;
 
 begin
   Result := True;
-  case GetArrow(c) of
+  case GetArrow(inp) of
     akUp: ItemIndex := Roll(ItemIndex - 1);
     akDown: ItemIndex := Roll(ItemIndex + 1);
     else
