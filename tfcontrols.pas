@@ -25,6 +25,9 @@ type
     FTabPosition: SizeInt;
     FWidth, FHeight: Integer;
     FClosed: Boolean;
+    FBackground: TColor;
+    forceUpdate: Boolean;
+    procedure SetBackground(AValue: TColor);
   protected
     procedure Resize; virtual; abstract;   
     function ProcessChar(c: Char; Shift: TShiftState): Boolean; virtual;
@@ -40,6 +43,7 @@ type
     property Width: Integer read FWidth;
     property Height: Integer read FHeight;
     property Closed: Boolean read FClosed write FClosed;
+    property Background: TColor read FBackground write SetBackground;
   end;
 
   { TTextControl }
@@ -170,6 +174,13 @@ end;
 
 { TTextForm }
 
+procedure TTextForm.SetBackground(AValue: TColor);
+begin
+  if FBackground=AValue then Exit;
+  FBackground:=AValue;
+  ForceUpdate:=True;
+end;
+
 function TTextForm.ProcessChar(c: Char; Shift: TShiftState): Boolean;
 function Roll(i: Integer): Integer;
 begin
@@ -217,6 +228,7 @@ begin
   FCanvas:=ACanvas;
   FControls:=TControlList.Create();
   FUserControls:=TUCList.Create(False);
+  FBackground:=RGB(0,0,0);
 end;
 
 destructor TTextForm.Destroy;
@@ -235,7 +247,8 @@ var c: Char;
 begin
   Closed:=False;
   repeat 
-    f:=False;
+    f:=forceUpdate;
+    forceUpdate:=False;
     ws:=GetWindowSize;
     if (ws.Width<>Width+1) or (ws.Height<>Height+1) then
     begin
@@ -245,6 +258,8 @@ begin
       Resize;
       f:=True;
       FCanvas.Clear;
+      FCanvas.SetColor(FBackground, FBackground);
+      FCanvas.Rectangle(0,0, Width,Height);
     end;
     for i :=0 to FControls.Count-1 do
       FControls[i].Update(f);
