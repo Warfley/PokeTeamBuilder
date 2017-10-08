@@ -6,7 +6,7 @@ unit TFControls;
 interface
 
 uses
-  Classes, SysUtils, TFTypes, TFCanvas, fgl;
+  Classes, SysUtils, TFTypes, TFCanvas, fgl, Controls;
 
 type
   TTextControl = class;
@@ -27,8 +27,9 @@ type
     FClosed: Boolean;
   protected
     procedure Resize; virtual; abstract;   
-    function ProcessChar(c: Char): Boolean; virtual;
+    function ProcessChar(c: Char; Shift: TShiftState): Boolean; virtual;
   public
+    procedure SetFocus(Item: TUserControl);
     procedure Close;
     constructor Create(ACanvas: TTextCanvas); virtual;
     destructor Destroy; override;
@@ -63,6 +64,7 @@ type
     procedure Draw(ACanvas: TTextCanvas); virtual;
     procedure Resize; virtual;
     procedure ColorChange; virtual;
+    procedure PositionChanged; virtual;
   public
     constructor Create(AParent: TTextForm);virtual;
     destructor Destroy; override;
@@ -93,20 +95,121 @@ type
     procedure Draw(ACanvas: TTextCanvas); override;
     procedure FocusChanged; virtual;
   public
-    function ProcessChar(c: Char): Boolean; virtual; abstract;
+    function ProcessChar(c: Char; Shift: TShiftState): Boolean; virtual; abstract;
     property Focused: Boolean read FFocused write SetFocused;
     property FocusedForeground: TColor read FFocusedFG write SetFFG;
     property FocusedBackground: TColor read FFocusedBG write SetFBG;
   end;
+
+  { TTFListBox }
+
+  { TDeltaUpdateControl }
+
+  TDeltaUpdateControl = class(TUserControl)
+  private
+    FCompleteUpdate: Boolean;
+  protected
+    procedure DeltaDraw(ACanvas: TTextCanvas); virtual;
+    procedure Resize; override;
+    procedure ColorChange; override;
+    procedure DrawDone; virtual;
+  public
+    procedure FullReadraw; virtual;
+    constructor Create(AParent: TTextForm); override;
+    procedure Update(FullRepaint: Boolean=false); override;
+  end;
+
 implementation
+
+{ TDeltaUpdateControl }
+
+procedure TDeltaUpdateControl.DeltaDraw(ACanvas: TTextCanvas);
+begin
+  // NOOP;
+end;
+
+procedure TDeltaUpdateControl.Resize;
+begin
+  inherited Resize;
+  FCompleteUpdate:=True;
+end;
+
+procedure TDeltaUpdateControl.ColorChange;
+begin
+  inherited ColorChange;
+  FCompleteUpdate:=True;
+end;
+
+procedure TDeltaUpdateControl.DrawDone;
+begin
+  FCompleteUpdate:=False;
+  FChanged:=False;
+end;
+
+procedure TDeltaUpdateControl.FullReadraw;
+begin
+  FCompleteUpdate:=True;
+  FChanged:=True;
+end;
+
+constructor TDeltaUpdateControl.Create(AParent: TTextForm);
+begin
+  FCompleteUpdate:=False;
+  inherited Create(AParent);
+end;
+
+procedure TDeltaUpdateControl.Update(FullRepaint: Boolean);
+begin
+  FCompleteUpdate:=FCompleteUpdate or FullRepaint;
+  if FCompleteUpdate then
+    Draw(Canvas)
+  else
+    DeltaDraw(Canvas);
+  DrawDone;
+end;
 
 { TTextForm }
 
-function TTextForm.ProcessChar(c: Char): Boolean;
+function TTextForm.ProcessChar(c: Char; Shift: TShiftState): Boolean;
+function Roll(i: Integer): Integer;
 begin
-  Result := (c = #27) and (ReadChar(False)=#0);
-  if Result then
-    Close;
+  if i<0 then
+    Result:=i+FUserControls.Count
+  else
+    Result:=i mod FUserControls.Count;
+end;
+
+begin
+  Result:=True;
+  case c of
+  #9:
+      if ssShift in Shift then
+      SetFocus(FUserControls[Roll(FTabPosition-1)])
+      else
+        SetFocus(FUserControls[Roll(FTabPosition+1)]);
+  #27:
+      {$IfDef UNIX}
+      if ReadChar(False)=0 then
+      {$EndIf}
+      Close;
+  else
+    Result:=False;
+  end;
+end;
+
+procedure TTextForm.SetFocus(Item: TUserControl);
+var
+  i: Integer;
+begin
+  for i:=0 to FUserControls.Count-1 do
+    if FUserControls[i]= Item then
+    begin
+      if i= FTabPosition then Exit;
+      FUserControls[FTabPosition].SetFocused(False);
+      FTabPosition:=i;
+      FUserControls[i].SetFocused(True);
+      Break;
+    end;
 end;
 
 procedure TTextForm.Close;
@@ -133,6 +236,7 @@ var c: Char;
   i: Integer;
   ws: TWindowSize;
   f: Boolean;
+  ss: TShiftState;
 begin
   Closed:=False;
   repeat 
@@ -151,16 +255,15 @@ begin
       FControls[i].Update(f);
     FCanvas.Print(f);
     c:=ReadChar();
+    ss:=GetKeyShiftState;
+    f:=False;
     if FUserControls.Count>0 then
-    if c = #9 then
-    begin
-      FUserControls[FTabPosition].SetFocused(False);
-      FTabPosition:=(FTabPosition+1) mod FUserControls.Count;
-      FUserControls[FTabPosition].SetFocused(True);
-    end
-    else if FUserControls[FTabPosition].ProcessChar(c) or
-      ProcessChar(c) then
-      c := #0
+      if FUserControls[FTabPosition].ProcessChar(c,ss) then
+      begin
+        c := #0;
+        f:=True;
+      end;
+    if not f then ProcessChar(c,ss)
   until Closed;
 end;
 
@@ -222,6 +325,7 @@ begin
   if FFocused=AValue then Exit;
   FFocused:=AValue;
   FChanged:=True;
+  if AValue then Parent.SetFocus(Self);
   FocusChanged;
 end;
 
@@ -285,6 +389,7 @@ begin
   if FLeft=AValue then Exit;
   FLeft:=AValue;
   FChanged :=True;
+  PositionChanged;
 end;
 
 procedure TTextControl.SetParent(AValue: TTextForm);
@@ -303,6 +408,7 @@ begin
   if FTop=AValue then Exit;
   FTop:=AValue;
   FChanged:=True;
+  PositionChanged;
 end;
 
 procedure TTextControl.SetWidth(AValue: Integer);
@@ -328,6 +434,11 @@ end;
 procedure TTextControl.ColorChange;
 begin
   //NOOP
+end;
+
+procedure TTextControl.PositionChanged;
+begin
+
 end;
 
 constructor TTextControl.Create(AParent: TTextForm);

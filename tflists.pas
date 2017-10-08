@@ -1,0 +1,362 @@
+unit TFLists;
+
+{$mode objfpc}{$H+}
+
+interface
+
+uses
+  Classes, SysUtils, TFCanvas, TFTypes, TFControls, math;
+
+type
+
+  { TTFListControl }
+
+  TTFListControl = class(TDeltaUpdateControl)
+  private
+    FOnSelect: TNotifyEvent;
+    FUpdateRows: TList;
+    FItemIndex: IntPtr;
+    FSelectionBG, FSelectionFG: TColor;
+    FTopRow: IntPtr;
+    procedure SetItemIndex(AValue: IntPtr);
+    procedure SetSelectionBackground(AValue: TColor);
+    procedure SetSelectionForeground(AValue: TColor);
+    procedure SetTopRow(AValue: IntPtr);
+  protected
+    function GetItemCount: IntPtr; virtual; abstract;
+    function GetItem(Index: IntPtr): string; virtual; abstract;
+    procedure FocusChanged; override;
+    procedure DeltaDraw(ACanvas: TTextCanvas); override;
+    procedure Draw(ACanvas: TTextCanvas); override;
+    procedure UpdateRow(Row: IntPtr); virtual;
+    procedure DrawDone; override;
+  public
+    function ProcessChar(c: char; Shift: TShiftState): boolean; override;
+    constructor Create(AParent: TTextForm); override;
+    destructor Destroy; override;
+    property OnSelect: TNotifyEvent read FOnSelect write FOnSelect;
+    property SelectionBackground: TColor read FSelectionBG write SetSelectionBackground;
+    property SelectionForeground: TColor read FSelectionFG write SetSelectionForeground;
+    property ItemIndex: IntPtr read FItemIndex write SetItemIndex;
+    property TopRow: IntPtr read FTopRow write SetTopRow;
+  end;
+
+  { TTFListBox }
+
+  TTFListBox = class(TTFListControl)
+  private
+    FItems: TStringList;
+    procedure ItemsChanged(Sender: TObject);
+  protected
+    function GetItem(Index: IntPtr): string; override;
+    function GetItemCount: IntPtr; override;
+  public
+    constructor Create(AParent: TTextForm); override;
+    destructor Destroy; override;
+    property Items: TStringList read FItems;
+  end;
+
+  { TTFCheckListBox }
+
+  TTFCheckListBox = class(TTFListControl)
+  private
+    FItems: TStringList;
+    FCheckCount: IntPtr;
+    FOnChange: TNotifyEvent;
+    function getChecked(Index: IntPtr): Boolean;
+    procedure ItemsChanged(Sender: TObject);
+    procedure SetChecked(Index: IntPtr; AValue: Boolean);
+  protected
+    function GetItem(Index: IntPtr): string; override;
+    function GetItemCount: IntPtr; override;
+  public
+    function ProcessChar(c: char; Shift: TShiftState): boolean; override;
+    constructor Create(AParent: TTextForm); override;
+    destructor Destroy; override;
+    property Checked[Index: IntPtr]: Boolean read getChecked write SetChecked;
+    property CheckCount: IntPtr read FCheckCount;
+    property Items: TStringList read FItems;
+    property OnChange: TNotifyEvent read FOnChange write FOnChange;
+  end;
+
+implementation
+
+{ TTFCheckListBox }
+
+procedure TTFCheckListBox.ItemsChanged(Sender: TObject);
+begin
+  FullReadraw;
+end;
+
+function TTFCheckListBox.getChecked(Index: IntPtr): Boolean;
+begin
+  Result:=IntPtr(Items.Objects[Index]) <> 0;
+end;
+
+procedure TTFCheckListBox.SetChecked(Index: IntPtr; AValue: Boolean);
+begin
+  Items.OnChange:=nil;
+  try
+  if AValue then
+    Items.Objects[Index]:=TObject(-1)
+  else
+    Items.Objects[Index]:=TObject(0);
+  finally
+    items.OnChange:=@ItemsChanged;
+  end;
+  UpdateRow(Index);
+  if Assigned(FOnChange) then
+    FOnChange(Self)
+end;
+
+function TTFCheckListBox.GetItem(Index: IntPtr): string;
+begin
+  SetLength(Result, Items[Index].Length+2);
+  Move(Items[Index][1], Result[3], Items[Index].Length);
+  Result[2]:='|';
+  if Checked[Index] then Result[1]:='X'
+  else Result[1]:='_';
+end;
+
+function TTFCheckListBox.GetItemCount: IntPtr;
+begin
+  Result:=Items.Count;
+end;
+
+function TTFCheckListBox.ProcessChar(c: char; Shift: TShiftState): boolean;
+begin
+  Result:=inherited ProcessChar(c, Shift);
+  if not Result then
+    if c in [#13, ' '] then
+    begin
+      Checked[ItemIndex]:=not Checked[ItemIndex];
+      Result:=True;
+    end;
+end;
+
+constructor TTFCheckListBox.Create(AParent: TTextForm);
+begin                       
+  FItems:=TStringList.Create;
+  FItems.OnChange:=@ItemsChanged;
+  inherited Create(AParent);
+end;
+
+destructor TTFCheckListBox.Destroy;
+begin
+  inherited Destroy;
+end;
+
+{ TTFListBox }
+
+procedure TTFListBox.ItemsChanged(Sender: TObject);
+begin
+  FullReadraw;
+end;
+
+function TTFListBox.GetItem(Index: IntPtr): string;
+begin
+  Result:=FItems[Index];
+end;
+
+function TTFListBox.GetItemCount: IntPtr;
+begin
+  Result:=FItems.Count;
+end;
+
+constructor TTFListBox.Create(AParent: TTextForm);
+begin
+  FItems:=TStringList.Create;
+  FItems.OnChange:=@ItemsChanged;
+  inherited Create(AParent);
+end;
+
+destructor TTFListBox.Destroy;
+begin
+  FItems.Free;
+  inherited Destroy;
+end;
+
+{ TTFListControl }
+
+procedure TTFListControl.SetItemIndex(AValue: IntPtr);
+begin
+  if Assigned(FOnSelect) then
+    FOnSelect(Self);
+  if FItemIndex = AValue then
+    Exit;
+  UpdateRow(FItemIndex);
+  FItemIndex := AValue;
+  UpdateRow(FItemIndex);
+
+  if (ItemIndex < 0) or (ItemIndex >= GetItemCount) then
+    Exit;
+  if (ItemIndex < TopRow) then
+    TopRow := Max(0, ItemIndex - Height - 1)
+  else if ItemIndex > TopRow + Height - 1 then
+    TopRow := Min(ItemIndex, GetItemCount - Height - 1);
+  // fchanged gets set by UpdateRow
+end;
+
+procedure TTFListControl.SetSelectionBackground(AValue: TColor);
+begin
+  if FSelectionBG = AValue then
+    Exit;
+  FSelectionBG := AValue;
+  FChanged := Focused;
+  UpdateRow(ItemIndex);
+end;
+
+procedure TTFListControl.SetSelectionForeground(AValue: TColor);
+begin
+  if FSelectionFG = AValue then
+    Exit;
+  FSelectionFG := AValue;
+  FChanged := Focused;
+  UpdateRow(ItemIndex);
+end;
+
+procedure TTFListControl.SetTopRow(AValue: IntPtr);
+begin
+  if FTopRow = AValue then
+    Exit;
+  FTopRow := AValue;
+  FullReadraw;
+end;
+
+procedure TTFListControl.FocusChanged;
+begin
+  inherited FocusChanged;
+  UpdateRow(ItemIndex);
+end;
+
+procedure TTFListControl.DeltaDraw(ACanvas: TTextCanvas);
+var
+  i, j, x: IntPtr;
+  s, str: string;
+  fg, bg: TColor;
+begin
+  if Focused then
+  begin
+    fg:=SelectionForeground;
+    bg:=SelectionBackground;
+  end
+  else
+  begin
+    fg:=FocusedForeground;
+    bg:=FocusedBackground;
+  end;
+  for j := 0 to FUpdateRows.Count - 1 do
+  begin
+    i := IntPtr(FUpdateRows[j]);
+    if (i < TopRow) or (i > Min(TopRow + Height, GetItemCount) - 1) then
+      Continue;
+    if (i < 0) or (i >= GetItemCount) then
+      Continue;
+    if i = ItemIndex then
+      ACanvas.SetColor(fg, bg)
+    else
+      ACanvas.SetColor(Foreground, Background);
+    str := GetItem(i);
+    SetLength(s, Width);
+    s[1] := ' ';
+    s[Width] := ' ';
+    for x := 1 to Width - 2 do
+      if x <= str.Length then
+        s[x + 1] := str[x]
+      else
+        s[x + 1] := ' ';
+    ACanvas.TextOut(Left, Top + i - TopRow, s);
+  end;
+end;
+
+procedure TTFListControl.Draw(ACanvas: TTextCanvas);
+var
+  i, j, x: IntPtr;
+  s, str: string;
+  fg, bg: TColor;
+begin
+  inherited Draw(ACanvas);
+  if Focused then
+  begin
+    fg:=SelectionForeground;
+    bg:=SelectionBackground;
+  end
+  else
+  begin
+    fg:=FocusedForeground;
+    bg:=FocusedBackground;
+  end;
+  for i := TopRow to Min(TopRow + Height, GetItemCount) - 1 do
+  begin
+    if i = ItemIndex then
+      ACanvas.SetColor(fg, bg)
+    else
+      ACanvas.SetColor(Foreground, Background);
+    str := GetItem(i);
+    SetLength(s, Width);
+    s[1] := ' ';
+    s[Width] := ' ';
+    for x := 1 to Width - 2 do
+      if x <= str.Length then
+        s[x + 1] := str[x]
+      else
+        s[x + 1] := ' ';
+    ACanvas.TextOut(Left, Top + i - TopRow, s);
+  end;
+end;
+
+procedure TTFListControl.UpdateRow(Row: IntPtr);
+begin
+  FUpdateRows.Add(Pointer(Row));
+  FChanged := True;
+end;
+
+procedure TTFListControl.DrawDone;
+begin
+  inherited DrawDone;
+  FUpdateRows.Clear;
+end;
+
+function TTFListControl.ProcessChar(c: char; Shift: TShiftState): boolean;
+
+  function Roll(pos: integer): integer;
+  begin
+    if pos < 0 then
+      Result := pos + GetItemCount
+    else
+      Result := pos mod GetItemCount;
+  end;
+
+begin
+  Result := True;
+  case GetArrow(c) of
+    akUp: ItemIndex := Roll(ItemIndex - 1);
+    akDown: ItemIndex := Roll(ItemIndex + 1);
+    else
+      Result := False;
+  end;
+end;
+
+constructor TTFListControl.Create(AParent: TTextForm);
+begin
+  FUpdateRows := TList.Create;
+  FItemIndex := 0;
+  inherited Create(AParent);  
+  Width:=40;
+  Height:=10;
+  Background:=RGB(255,255,255);
+  Foreground:=RGB(0,0,0);
+  FocusedBackground:=RGB(192,192,192);
+  FocusedForeground:=Foreground;
+  SelectionBackground:=RGB(0,128,255);
+  SelectionForeground:=Background;
+  FullReadraw;
+end;
+
+destructor TTFListControl.Destroy;
+begin
+  FUpdateRows.Free;
+  inherited Destroy;
+end;
+
+end.

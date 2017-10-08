@@ -17,7 +17,11 @@ uses {$IFDEF UNIX}
   TFTypes,
   TFCanvas,
   TFControls,
-  TFBaseControls, StartUpForm, CheckListForm, SelectionForm;
+  TFBaseControls,
+  StartUpForm,
+  CheckListForm,
+  SelectionForm,
+  TFLists;
 
 type
 
@@ -74,13 +78,41 @@ type
 
 function TPokeTeamBuilder.SelectGenerationG(const Generations: TGenerationList
   ): integer;
+var i: Integer;
 begin
-  Result:=1;
+  with TSelectionForm.Create(FCanvas) do
+  try
+    Caption:='Select edition';
+    for i:=0 to Generations.Count-1 do
+      ListBox.Items.Add(Generations[i].Name);
+    Show;
+    Result:=ListBox.ItemIndex;
+  finally
+    Free;
+  end;
 end;
 
 function TPokeTeamBuilder.selectIG(const Pokemon: TPokemonList): TDynIntArray;
+      var
+  i, p: Integer;
 begin
-  Result:=nil;
+  with TCheckListForm.Create(FCanvas) do
+  try
+    Caption:='Select pokemon to ignore';
+    for i:=0 to Pokemon.Count-1 do
+      SelectionList.Items.Add(Pokemon[i].Name);
+    Show;
+    SetLength(Result, SelectionList.CheckCount);
+    p:=0;
+    for i:=0 to SelectionList.Items.Count-1 do
+      if SelectionList.Checked[i] then
+      begin
+        Result[p]:=i;
+        inc(p);
+      end;
+  finally
+    Free;
+  end;
 end;
 
   function TPokeTeamBuilder.SelectISTD(const Pokemon: TPokemonList): TDynIntArray;
@@ -111,7 +143,7 @@ var
 begin
   with TSelectionForm.Create(FCanvas) do
   try
-    Caption:='Select moves to be in your team';
+    Caption:='Select game language';
     for i:=0 to Languages.Count-1 do
       ListBox.Items.Add(Languages[i].Name);
     Show;
@@ -142,7 +174,7 @@ end;
 
 function TPokeTeamBuilder.SelectMovesG(const Moves: TMoveList): TDynIntArray;
 var
-  i: Integer;
+  i, p: Integer;
 begin
   with TCheckListForm.Create(FCanvas) do
   try
@@ -150,6 +182,14 @@ begin
     for i:=0 to Moves.Count-1 do
       SelectionList.Items.Add(Moves[i].AttackName);
     Show;
+    p:=0;
+    SetLength(Result, SelectionList.CheckCount);
+    for i:=0 to SelectionList.Items.Count-1 do
+      if SelectionList.Checked[i] then
+      begin
+        Result[p]:=i;
+        inc(p);
+      end;
   finally
     Free;
   end;
@@ -177,7 +217,39 @@ end;
 
 function TPokeTeamBuilder.SelectOKG: TObtainableKinds;
 begin
-
+  with TCheckListForm.Create(FCanvas) do
+  try
+    Caption:='Select pokemon to ignore';
+      SelectionList.Items.Add('Catchable');
+      SelectionList.Items.Add('Catchable during swarm');
+      SelectionList.Items.Add('Obtainable with DualSlot'); 
+      SelectionList.Items.Add('Recievable (e.g. Starter)');
+      SelectionList.Items.Add('Evolves');
+      SelectionList.Items.Add('Backevolution obtainable');
+      SelectionList.Items.Add('Event');
+      SelectionList.Checked[0]:=True; 
+      SelectionList.Checked[3]:=True;
+      SelectionList.Checked[4]:=True; 
+      SelectionList.Checked[5]:=True;
+    Show;
+    Result:=[];
+    if SelectionList.Checked[0] then
+      Include(Result,okCatchable);
+    if SelectionList.Checked[1] then
+      Include(Result,okSwarm);
+    if SelectionList.Checked[2] then
+      Include(Result,okDualSlot);
+    if SelectionList.Checked[3] then
+      Include(Result,okRecieved);
+    if SelectionList.Checked[4] then
+      Include(Result,okEvolves);
+    if SelectionList.Checked[5] then
+      Include(Result,okBackEvolve);
+    if SelectionList.Checked[6] then
+      Include(Result,okEvent);
+  finally
+    Free;
+  end;
 end;
 
   function TPokeTeamBuilder.SelectOKSTD: TObtainableKinds;
@@ -216,8 +288,26 @@ end;
   end;
 
 function TPokeTeamBuilder.SelectPG(const Pokemon: TPokemonList): TDynIntArray;
+var
+  i, p: Integer;
 begin
-
+  with TCheckListForm.Create(FCanvas) do
+  try
+    Caption:='Select pokemon to ignore';
+    for i:=0 to Pokemon.Count-1 do
+      SelectionList.Items.Add(Pokemon[i].Name);
+    Show;
+    SetLength(Result, SelectionList.CheckCount);
+    p:=0;
+    for i:=0 to SelectionList.Items.Count-1 do
+      if SelectionList.Checked[i] then
+      begin
+        Result[p]:=i;
+        inc(p);
+      end;
+  finally
+    Free;
+  end;
 end;
 
   function TPokeTeamBuilder.SelectPSTD(const Pokemon: TPokemonList): TDynIntArray;

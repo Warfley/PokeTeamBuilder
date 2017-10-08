@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, TFBaseControls, TFControls, TFCanvas,
-  TFTypes, math;
+  TFTypes, math, TFLists;
 
 type
 

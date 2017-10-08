@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, TFBaseControls, TFControls, TFCanvas,
-  TFTypes, math;
+  TFTypes, math, TFLists;
 
 type
 
@@ -22,7 +22,7 @@ type
     procedure SetCaption(AValue: String);
   protected
     procedure Resize; override;
-    function ProcessChar(c: Char): Boolean; override;
+    function ProcessChar(c: Char; Shift: TShiftState): Boolean; override;
   public
     constructor Create(ACanvas: TTextCanvas); override;
     property ListBox: TTFListBox read FListBox;
@@ -63,10 +63,10 @@ begin
   Continue.Top:=Height-Continue.Height-1;
 end;
 
-function TSelectionForm.ProcessChar(c: Char): Boolean;
+function TSelectionForm.ProcessChar(c: Char; Shift: TShiftState): Boolean;
 begin
   if c=#13 then Close;
-  Result:=inherited ProcessChar(c) or (c=#13);
+  Result:=inherited ProcessChar(c, Shift) or (c=#13);
 end;
 
 constructor TSelectionForm.Create(ACanvas: TTextCanvas);

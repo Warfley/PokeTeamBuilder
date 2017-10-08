@@ -22,7 +22,7 @@ type
     procedure ButtonClicked(Sender: TObject);
   protected
     procedure Resize; override;
-    function ProcessChar(c: Char): Boolean; override;
+    function ProcessChar(c: Char; Shift: TShiftState): Boolean; override;
   public
     constructor Create(ACanvas: TTextCanvas); override;
     destructor Destroy; override;
@@ -60,10 +60,10 @@ begin
   Button.Top:=Height-Button.Height-1;
 end;
 
-function TStartForm.ProcessChar(c: Char): Boolean;
+function TStartForm.ProcessChar(c: Char; Shift: TShiftState): Boolean;
 begin
   if c=#13 then ButtonClicked(Nil);
-  Result:=inherited ProcessChar(c) or (c=#13);
+  Result:=inherited ProcessChar(c, Shift) or (c=#13);
 end;
 
 constructor TStartForm.Create(ACanvas: TTextCanvas);
