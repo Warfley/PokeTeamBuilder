@@ -56,8 +56,8 @@ begin
   TeamCountEdit.Left := m.x - (TeamCountEdit.Width div 2);
   TeamCountEdit.Top := m.y - 1;
 
-  Button.Left:= Width-Button.Width-1;
-  Button.Top:=Height-Button.Height-1;
+  Button.Left:= Width-Button.Width;
+  Button.Top:=Height-Button.Height;
 end;
 
 function TStartForm.ProcessInput(inp: String): Boolean;

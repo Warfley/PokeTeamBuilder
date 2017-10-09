@@ -220,7 +220,7 @@ function TPokeTeamBuilder.SelectOKG: TObtainableKinds;
 begin
   with TCheckListForm.Create(FCanvas) do
   try
-    Caption:='Select pokemon to ignore';
+    Caption:='Select obtainable methods';
       SelectionList.Items.Add('Catchable');
       SelectionList.Items.Add('Catchable during swarm');
       SelectionList.Items.Add('Obtainable with DualSlot'); 
@@ -294,7 +294,7 @@ var
 begin
   with TCheckListForm.Create(FCanvas) do
   try
-    Caption:='Select pokemon to ignore';
+    Caption:='Select pokemon to choose from';
     for i:=0 to Pokemon.Count-1 do
       SelectionList.Items.Add(Pokemon[i].Name);
     Show;

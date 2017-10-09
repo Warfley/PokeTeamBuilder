@@ -39,6 +39,7 @@ type
     FAlign: TAlign;
     FCursorPos: Integer;
     FCursorColor: TColor;
+    FOnEnterKey: TNotifyEvent;
     procedure SetAlign(AValue: TAlign);
     procedure SetCursorColor(AValue: TColor);
     procedure SetPosition(AValue: Integer);
@@ -55,6 +56,7 @@ type
     property CursorColor: TColor read FCursorColor write SetCursorColor;
     property Position: Integer read FCursorPos write SetPosition;
     property Align: TAlign read FAlign write SetAlign;
+    property OnEnterKey: TNotifyEvent read FOnEnterKey write FOnEnterKey;
   end;
 
   { TTFButton }
@@ -100,11 +102,11 @@ begin
   inherited Draw(ACanvas);
   case Align of
       alLeft:
-        ACanvas.TextOut(Left, Top+1,FCaption);
+        ACanvas.TextOut(Left, Top+(Height div 2),FCaption);
       alRight:
-        ACanvas.TextOut(Left+Width-FCaption.Length, Top+1,FCaption);
+        ACanvas.TextOut(Left+Width-FCaption.Length, Top+(Height div 2),FCaption);
       alCenter:
-        ACanvas.TextOut(Left+((Width - FCaption.Length) div 2), Top+1,FCaption);
+        ACanvas.TextOut(Left+((Width - FCaption.Length) div 2), Top+(Height div 2),FCaption);
     end;
 end;
 
@@ -211,6 +213,10 @@ begin
        if Assigned(FOnChange) then
         FOnChange(Self);
      end;
+    #13: if Assigned(FOnEnterKey) then
+      FOnEnterKey(Self)
+      else
+        Result:=False;
     #33..#254:
      if (NumbersOnly and (inp[1] in ['0'..'9'])) or not NumbersOnly then
      begin

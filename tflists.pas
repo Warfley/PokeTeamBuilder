@@ -63,9 +63,12 @@ type
     FItems: TStringList;
     FCheckCount: IntPtr;
     FOnChange: TNotifyEvent;
+    FFilter: String;
+    FFilterList: TList;
     function getChecked(Index: IntPtr): Boolean;
     procedure ItemsChanged(Sender: TObject);
     procedure SetChecked(Index: IntPtr; AValue: Boolean);
+    procedure SetFilter(AValue: String);
   protected
     function GetItem(Index: IntPtr): string; override;
     function GetItemCount: IntPtr; override;
@@ -77,6 +80,7 @@ type
     property CheckCount: IntPtr read FCheckCount;
     property Items: TStringList read FItems;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
+    property Filter: String read FFilter write SetFilter;
   end;
 
 implementation
@@ -88,8 +92,14 @@ var
   i: Integer;
 begin
   FCheckCount:=0;
+  FFilterList.Clear;
   for i:=0 to Items.Count-1 do
-    if IntPtr(Items.Objects[i])<>0 then inc(FCheckCount); 
+  begin
+    if IntPtr(Items.Objects[i])<>0 then inc(FCheckCount);
+    if (FFilter.Length>0) and Items[i].ToLower.Contains(FFilter.ToLower) then
+      FFilterList.Add(Pointer(i));
+  end;
+
   FullReadraw;
 end;
 
@@ -99,6 +109,7 @@ begin
 end;
 
 procedure TTFCheckListBox.SetChecked(Index: IntPtr; AValue: Boolean);
+var i: IntPtr;
 begin
   Items.OnChange:=nil;
   try
@@ -115,13 +126,38 @@ begin
   finally
     items.OnChange:=@ItemsChanged;
   end;
-  UpdateRow(Index);
+  if FFilter.Length>0 then
+  begin
+    for i:=0 to FFilterList.Count-1 do
+      if FFilterList[i] = Pointer(Index) then
+      begin
+        UpdateRow(i);
+        break;
+      end;
+  end
+  else
+    UpdateRow(Index);
   if Assigned(FOnChange) then
     FOnChange(Self)
 end;
 
+procedure TTFCheckListBox.SetFilter(AValue: String);
+var
+  i: Integer;
+begin
+  if FFilter=AValue then Exit;
+  FFilter:=AValue;
+  FullReadraw;
+  FFilterList.Clear;
+  for i:=0 to Items.Count-1 do
+    if Items[i].ToLower.Contains(FFilter.ToLower) then
+      FFilterList.Add(Pointer(i));
+end;
+
 function TTFCheckListBox.GetItem(Index: IntPtr): string;
 begin
+  if FFilter.Length>0 then
+    Index:=IntPtr(FFilterList[Index]);
   SetLength(Result, Items[Index].Length+2);
   Move(Items[Index][1], Result[3], Items[Index].Length);
   Result[2]:='|';
@@ -131,7 +167,10 @@ end;
 
 function TTFCheckListBox.GetItemCount: IntPtr;
 begin
-  Result:=Items.Count;
+  if FFilter.Length>0 then
+    Result:=FFilterList.Count
+  else
+    Result:=Items.Count;
 end;
 
 function TTFCheckListBox.ProcessInput(inp: String): boolean;
@@ -140,7 +179,10 @@ begin
   if not Result then
     if inp = ' ' then
     begin
-      Checked[ItemIndex]:=not Checked[ItemIndex];
+      if FFilter.Length>0 then 
+         Checked[IntPtr(FFilterList[ItemIndex])]:=not Checked[IntPtr(FFilterList[ItemIndex])]
+      else
+        Checked[ItemIndex]:=not Checked[ItemIndex];
       Result:=True;
     end;
 end;
@@ -149,11 +191,14 @@ constructor TTFCheckListBox.Create(AParent: TTextForm);
 begin                       
   FItems:=TStringList.Create;
   FItems.OnChange:=@ItemsChanged;
+  FFilterList:=TList.Create;
   inherited Create(AParent);
 end;
 
 destructor TTFCheckListBox.Destroy;
 begin
+  FItems.Free;
+  FFilterList.Free;
   inherited Destroy;
 end;
 
@@ -294,7 +339,7 @@ begin
   begin
     d:=Height/GetItemCount;
     l:=Max(1,trunc(d*Height));
-    p:=TopRow div Height;
+    p:=(TopRow div Height)*l;
     if TopRow=0 then p:=0
     else if TopRow=GetItemCount-Height then
       p:=Height-l-1;

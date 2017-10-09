@@ -115,8 +115,8 @@ begin
       MoveLabel[i].Top:=i+l;
     end;
 
-    NextButton.Top:=Height-NextButton.Height-1;
-    NextButton.Left:=Width-NextButton.Width-1;
+    NextButton.Top:=Height-NextButton.Height;
+    NextButton.Left:=Width-NextButton.Width;
 end;
 
 function TShowTeamForm.ProcessInput(inp: String): Boolean;
