@@ -204,7 +204,7 @@ begin
   akUp, akDown: Result:=False;
   akNone:
     case inp[1] of
-    #8:
+    #8, #127:
      begin
        // FText because of FCursorPos
       FText:=FText.Substring(0, FCursorPos-1)+FText.Substring(FCursorPos);
@@ -217,7 +217,7 @@ begin
       FOnEnterKey(Self)
       else
         Result:=False;
-    #33..#254:
+    #33..#126, #128..#254:
      if (NumbersOnly and (inp[1] in ['0'..'9'])) or not NumbersOnly then
      begin
       Text:=FText.Substring(0, FCursorPos)+inp[1]+FText.Substring(FCursorPos);
