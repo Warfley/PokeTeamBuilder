@@ -195,6 +195,7 @@ destructor TPKTB.Destroy;
 begin
   FMoves.Free;
   FPokePool.Free;
+  FStrengthTable.Free;
   inherited Destroy;
 end;
 
