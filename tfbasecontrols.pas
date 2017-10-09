@@ -208,7 +208,7 @@ begin
      begin
        // FText because of FCursorPos
       FText:=FText.Substring(0, FCursorPos-1)+FText.Substring(FCursorPos);
-      dec(FCursorPos);
+      FCursorPos:=Max(0, FCursorPos-1);
       FChanged:=True;
        if Assigned(FOnChange) then
         FOnChange(Self);

@@ -104,6 +104,9 @@ begin
 
     Continue.Left:=Width-Continue.Width;
     Continue.Top:=Height-Continue.Height;
+
+    if FilterEdit.Left+FilterEdit.Width>=Continue.Left then
+      FilterEdit.Width:=Continue.Left-1 -FilterEdit.Left;
 end;
 
 function TCheckListForm.ProcessInput(inp: String): Boolean;
