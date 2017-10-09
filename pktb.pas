@@ -78,15 +78,13 @@ var
   pkmn: TPokemon;
   w, j, i: Integer;
   t: TTypeStrength;
-  c: Integer;
+  avg: Integer;
 begin
-  for i:=0 to Length(Team.Pokemon)-1 do
-    if Team.Pokemon[i].ID=0 then
-    begin
-      c:=i;
-      break;
-    end;
   CalcStrength(Team);
+  avg:=0;
+  for i:=0 to Length(Team.Strength)-1 do
+    inc(avg, Team.Strength[i].Factor);
+  avg := avg div Length(Team.Strength);
   if Count = 0 then
     exit;
   SetLength(Weight, Pool.Count);
@@ -106,18 +104,24 @@ begin
     if j<0 then j:=FStrengthTable.FindType(1);
     t:=FStrengthTable[j];
     for j := 0 to Length(t.Factors) - 1 do
-      if GetStrength(t.Factors[j].TID, Team) < ((c+1)*100)  then
+      if GetStrength(t.Factors[j].TID, Team) <= avg  then  // this is biased towards types with many strengths (e.g. earth)
+      begin
         inc(w, t.Factors[j].Factor div FactorDivisor);
+        if Random(100) < 50 then break; // so randomly break after the first few, to let only some account
+      end;
     if pkmn.Type2>0 then
     begin
     j:=FStrengthTable.FindType(pkmn.Type2);
     if j<0 then j:=FStrengthTable.FindType(1);
     t:=FStrengthTable[j];
       for j := 0 to Length(t.Factors) - 1 do
-        if GetStrength(t.Factors[j].TID, Team) < ((c+1)*100) then
+        if GetStrength(t.Factors[j].TID, Team) <= avg then
+        begin
           inc(w, t.Factors[j].Factor div FactorDivisor);
+        if Random(100) < 50 then break;
+        end;
     end;
-    Weight[i]:=w+Random(Max(Count-(Length(Team.Pokemon) div 2)+1, 0)**Shuffle);
+    Weight[i]:=w+Random((count div 2)**Shuffle);
   end;
   i:=-1;
   j:=-1;
@@ -126,7 +130,6 @@ begin
     begin
       j:=Weight[w];
       i:=w;
-      if j > 100 then if Random(1000)<Shuffle*Count*2 then Break;
     end;
   for j:=0 to Length(Team.Pokemon) -1 do
     if Team.Pokemon[j].ID = 0 then
