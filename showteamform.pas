@@ -79,7 +79,7 @@ procedure TShowTeamForm.Resize;
 var m: TPoint;
   l, i: Integer;
 begin
-  m:=Point(Width div 2, Height div 2);
+    m:=Point(Width div 2, Height div 2);
                                         
     PokeSelector.Width:=25;
     PokeSelector.Left:=(Width div 3)-PokeSelector.Width-1;
@@ -116,7 +116,8 @@ begin
     end;
 
     NextButton.Top:=Height-NextButton.Height;
-    NextButton.Left:=Width-NextButton.Width;
+    NextButton.Left:=Width-NextButton.Width-1;
+    inherited Resize;
 end;
 
 function TShowTeamForm.ProcessInput(inp: String): Boolean;

@@ -17,6 +17,9 @@ type
   TControlList = specialize TFPGObjectList<TTextControl>;
   TUCList = specialize TFPGObjectList<TUserControl>;
 
+  TPaintEvent = procedure(Sender: TObject; ACanvas: TTextCanvas) of object;
+  TInputEvent = procedure(Sender: TObject; Input: String; var Handled: Boolean) of object;
+
   { TTextForm }
 
   TTextForm = class
@@ -29,9 +32,11 @@ type
     FClosed: Boolean;
     FBackground: TColor;
     forceUpdate: Boolean;
+    FOnResize: TNotifyEvent;
+    FOnInput: TInputEvent;
     procedure SetBackground(AValue: TColor);
   protected
-    procedure Resize; virtual; abstract;   
+    procedure Resize; virtual;
     function ProcessInput(inp: String): Boolean; virtual;
   public
     procedure SetFocus(Item: TUserControl);
@@ -46,6 +51,8 @@ type
     property Height: Integer read FHeight;
     property Closed: Boolean read FClosed write FClosed;
     property Background: TColor read FBackground write SetBackground;
+    property OnResize: TNotifyEvent read FOnResize write FOnResize;
+    property OnInput: TInputEvent read FOnInput write FOnInput;
   end;
 
   { TTextControl }
@@ -57,6 +64,8 @@ type
     FWidth, FHeight: Integer;
     FBackground: TColor;
     FForeground: TColor;
+    FOnPaint: TPaintEvent;
+    FOnChangeBounds: TNotifyEvent;
     function GetCanvas: TTextCanvas;
     procedure SetBG(AValue: TColor);
     procedure SetFG(AValue: TColor);
@@ -83,6 +92,8 @@ type
     property Height: Integer read FHeight write SetHeight;
     property Background: TColor read FBackground write SetBG;
     property Foreground: TColor read FForeground write SetFG;
+    property OnPaint: TPaintEvent read FOnPaint write FOnPaint;
+    property OnChangeBounds: TNotifyEvent read FOnChangeBounds write FOnChangeBounds;
   end;
 
   TAlign = (alLeft, alCenter, alRight);
@@ -94,6 +105,9 @@ type
     FFocused: Boolean;
     FFocusedBG: TColor;
     FFocusedFG: TColor;
+    FOnEnter: TNotifyEvent;
+    FOnLeave: TNotifyEvent;
+    FOnInput: TInputEvent;
     procedure SetFBG(AValue: TColor);
     procedure SetFFG(AValue: TColor);
     procedure SetFocused(AValue: Boolean);
@@ -101,10 +115,13 @@ type
     procedure Draw(ACanvas: TTextCanvas); override;
     procedure FocusChanged; virtual;
   public
-    function ProcessInput(inp: String): Boolean; virtual; abstract;
+    function ProcessInput(inp: String): Boolean; virtual;
     property Focused: Boolean read FFocused write SetFocused;
     property FocusedForeground: TColor read FFocusedFG write SetFFG;
     property FocusedBackground: TColor read FFocusedBG write SetFBG;
+    property OnEnter: TNotifyEvent read FOnEnter write FOnEnter;
+    property OnLeave: TNotifyEvent read FOnLeave write FOnLeave;
+    property OnInput: TInputEvent read FOnInput write FOnInput;
   end;
 
   { TTFListBox }
@@ -152,7 +169,9 @@ end;
 procedure TDeltaUpdateControl.DrawDone;
 begin
   FCompleteUpdate:=False;
-  FChanged:=False;
+  FChanged:=False;    
+  if Assigned(FOnPaint) then
+    FOnPaint(Self, Canvas);
 end;
 
 procedure TDeltaUpdateControl.FullReadraw;
@@ -186,6 +205,12 @@ begin
   ForceUpdate:=True;
 end;
 
+procedure TTextForm.Resize;
+begin
+  if Assigned(FOnResize) then
+    FOnResize(Self);
+end;
+
 function TTextForm.ProcessInput(inp: String): Boolean;
 function Roll(i: Integer): Integer;
 begin
@@ -203,6 +228,8 @@ begin
     SetFocus(FUserControls[Roll(FTabPosition-1)])
   else
     Result:=False;
+  if not Result and Assigned(FOnInput) then
+    FOnInput(Self, inp, Result);
 end;
 
 procedure TTextForm.SetFocus(Item: TUserControl);
@@ -344,7 +371,15 @@ end;
 procedure TUserControl.Draw(ACanvas: TTextCanvas);
 var
   fg, bg: TColor;
+  t1, t2: Boolean;
 begin
+  t1:=Background=Transparency;
+  t2:=FocusedBackground=Transparency;
+  if t1 then
+    Background:=Parent.Background;
+  if t2 then
+    FocusedBackground:=Parent.Background;
+  try
   if Focused then
   begin
     fg:=Foreground;
@@ -358,11 +393,27 @@ begin
     Foreground:=fg;
     Background:=bg;
   end;
+  finally   
+  if t1 then
+    Background:=Transparency;
+  if t2 then
+    FocusedBackground:=Transparency;
+  end;
 end;
 
 procedure TUserControl.FocusChanged;
 begin
-  //NOOP
+  if Focused and Assigned(FOnEnter) then
+    FOnEnter(Self)
+  else if not Focused and Assigned(FOnLeave) then
+    FOnLeave(Self);
+end;
+
+function TUserControl.ProcessInput(inp: String): Boolean;
+begin
+  Result:=False;
+  if Assigned(FOnInput) then
+    FOnInput(Self, inp, Result);
 end;
 
 { TTextControl }
@@ -432,15 +483,24 @@ begin
 end;
 
 procedure TTextControl.Draw(ACanvas: TTextCanvas);
+var t: Boolean;
 begin
+  t:=Background=Transparency;
+  if t then
+    Background:=Parent.Background;
+  try
   ACanvas.SetColor(Background, Background);
   ACanvas.Rectangle(Left,Top,Width,Height);
   ACanvas.SetColor(Foreground, Background);
+  finally 
+  if t then Background:=Transparency;
+  end;
 end;
 
 procedure TTextControl.Resize;
 begin
-  //NOOP
+  if Assigned(FOnChangeBounds) then
+    FOnChangeBounds(Self);
 end;
 
 procedure TTextControl.ColorChange;
@@ -450,7 +510,8 @@ end;
 
 procedure TTextControl.PositionChanged;
 begin
-
+  if Assigned(FOnChangeBounds) then
+    FOnChangeBounds(Self);
 end;
 
 constructor TTextControl.Create(AParent: TTextForm);
@@ -469,6 +530,8 @@ begin
   if not (FullRepaint or FChanged) then Exit;
   Draw(Canvas);
   FChanged:=False;
+  if Assigned(FOnPaint) then
+    FOnPaint(Self, Canvas);
 end;
 
 end.

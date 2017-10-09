@@ -6,16 +6,16 @@ unit TFBaseControls;
 interface
 
 uses
-  Classes, SysUtils, TFTypes, TFControls, TFCanvas, math;
+  Classes, SysUtils, TFTypes, TFControls, TFCanvas, Math;
 
 type
 
-{ TTFLabel }
+  { TTFLabel }
 
   TTFLabel = class(TTextControl)
   private
     FText: TStringList;
-    FAutoSize: Boolean;
+    FAutoSize: boolean;
     FAlign: TAlign;
     procedure SetAlign(AValue: TAlign);
     procedure TextChanged(Sender: TObject);
@@ -25,36 +25,63 @@ type
     constructor Create(AParent: TTextForm); override;
     destructor Destroy; override;
     property Text: TStringList read FText;
-    property AutoSize: Boolean read FAutoSize write FAutoSize;
+    property AutoSize: boolean read FAutoSize write FAutoSize;
     property Align: TAlign read FAlign write SetAlign;
+  end;
+
+
+  { TTFCheckBox }
+
+  TTFCheckBox = class(TUserControl)
+  private
+    FChecked: boolean;
+    FOnChange: TNotifyEvent;
+    FText: TStringList;
+    FAlign: TAlign;
+    FAutoSize: boolean;
+    procedure SetAlign(AValue: TAlign);
+    procedure setAutoSize(AValue: boolean);
+    procedure setChecked(AValue: boolean);
+    procedure TextChanged(Sender: TObject);
+  protected
+    procedure Draw(ACanvas: TTextCanvas); override;
+  public
+    function ProcessInput(inp: string): boolean; override;
+    constructor Create(AParent: TTextForm); override;
+    destructor Destroy; override;
+    property OnChange: TNotifyEvent read FOnChange write FOnChange;
+    property Text: TStringList read FText;
+    property Align: TAlign read FAlign write SetAlign;
+    property AutoSize: boolean read FAutoSize write setAutoSize;
+    property Checked: boolean read FChecked write setChecked;
   end;
 
   { TTFEdit }
 
   TTFEdit = class(TUserControl)
   private
-    FNumbersOnly: Boolean;
+    FNumbersOnly: boolean;
     FOnChange: TNotifyEvent;
-    FText: String;
+    FText: string;
     FAlign: TAlign;
-    FCursorPos: Integer;
+    FCursorPos: integer;
     FCursorColor: TColor;
     FOnEnterKey: TNotifyEvent;
     procedure SetAlign(AValue: TAlign);
     procedure SetCursorColor(AValue: TColor);
-    procedure SetPosition(AValue: Integer);
-    procedure SetText(AValue: String);
+    procedure SetPosition(AValue: integer);
+    procedure SetText(AValue: string);
   protected
     procedure Draw(ACanvas: TTextCanvas); override;
   public
-    function ProcessInput(inp: String): Boolean; override;
+    function ProcessInput(inp: string): boolean; override;
     constructor Create(AParent: TTextForm); override;
     destructor Destroy; override;
-    property NumbersOnly: Boolean read FNumbersOnly write FNumbersOnly;
+    property NumbersOnly: boolean read FNumbersOnly write FNumbersOnly;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
-    property Text: String read FText write SetText;
+    property Text: string read FText write SetText;
     property CursorColor: TColor read FCursorColor write SetCursorColor;
-    property Position: Integer read FCursorPos write SetPosition;
+    property Position: integer read FCursorPos write SetPosition;
     property Align: TAlign read FAlign write SetAlign;
     property OnEnterKey: TNotifyEvent read FOnEnterKey write FOnEnterKey;
   end;
@@ -64,185 +91,300 @@ type
   TTFButton = class(TUserControl)
   private
     FOnClick: TNotifyEvent;
-    FCaption: String;
+    FCaption: string;
     FAlign: TAlign;
     procedure SetAlign(AValue: TAlign);
-    procedure SetCaption(AValue: String);
+    procedure SetCaption(AValue: string);
   protected
     procedure Draw(ACanvas: TTextCanvas); override;
   public
-    function ProcessInput(inp: String): Boolean; override;
+    function ProcessInput(inp: string): boolean; override;
     constructor Create(AParent: TTextForm); override;
     property OnClick: TNotifyEvent read FOnClick write FOnClick;
-    property Caption: String read FCaption write SetCaption;
+    property Caption: string read FCaption write SetCaption;
     property Align: TAlign read FAlign write SetAlign;
   end;
 
 
 implementation
 
+{ TTFCheckBox }
+
+procedure TTFCheckBox.SetAlign(AValue: TAlign);
+begin
+  if FAlign = AValue then
+    Exit;
+  FAlign := AValue;
+  FChanged := True;
+end;
+
+procedure TTFCheckBox.setAutoSize(AValue: boolean);
+begin
+  if FAutoSize = AValue then
+    Exit;
+  FAutoSize := AValue;
+  FChanged := True;
+end;
+
+procedure TTFCheckBox.setChecked(AValue: boolean);
+begin
+  if FChecked = AValue then
+    Exit;
+  FChecked := AValue;
+  FChanged := True;
+end;
+
+procedure TTFCheckBox.TextChanged(Sender: TObject);
+var
+  s: string;
+begin
+  FChanged := True;
+  if AutoSize then
+  begin
+    Height := Max(1, Text.Count);
+    for s in Text do
+      if s.Length + 3 > Width then
+        Width := s.Length + 3;
+  end;
+end;
+
+procedure TTFCheckBox.Draw(ACanvas: TTextCanvas);
+var
+  i: integer;
+begin
+  inherited Draw(ACanvas);
+  for i := 0 to Text.Count - 1 do
+    case Align of
+      alLeft:
+        ACanvas.TextOut(Left + 3, Top + i, Text[i].Substring(0, Width - 3));
+      alRight:
+        ACanvas.TextOut(Left + Width - Text[i].Substring(0, Width - 3).Length,
+          Top + i, Text[i].Substring(0, Width - 3));
+      alCenter:
+        ACanvas.TextOut(Left + 3 +
+          (((Width - 3) - Text[i].Substring(0, Width - 3).Length) div 2),
+          Top + i, Text[i].Substring(0, Width - 3));
+    end;
+  if Checked then
+    Canvas.TextOut(Left, Top + (Height div 2), '[X]')
+  else
+    Canvas.TextOut(Left, Top + (Height div 2), '[ ]');
+end;
+
+function TTFCheckBox.ProcessInput(inp: string): boolean;
+begin
+  Result := inp = ' ';
+  if Result then
+  begin
+    Checked := not Checked;
+    if Assigned(FOnChange) then FOnChange(Self);
+  end;
+  if not Result then
+    Result := inherited ProcessInput(inp);
+end;
+
+constructor TTFCheckBox.Create(AParent: TTextForm);
+begin
+  inherited Create(AParent);
+  AutoSize := True;
+  Foreground := RGB(255, 255, 255);
+  Background := Transparency;
+  FocusedBackground := RGB(0, 128, 255);
+  FocusedForeground := RGB(255, 255, 255);
+  FText := TStringList.Create;
+  FText.OnChange := @TextChanged;
+  FText.Text := 'Checkbox';
+end;
+
+destructor TTFCheckBox.Destroy;
+begin
+  FText.Free;
+  inherited Destroy;
+end;
+
 { TTFButton }
 
 procedure TTFButton.SetAlign(AValue: TAlign);
 begin
-  if FAlign=AValue then Exit;
-  FAlign:=AValue;
-  FChanged:=True;
+  if FAlign = AValue then
+    Exit;
+  FAlign := AValue;
+  FChanged := True;
 end;
 
-procedure TTFButton.SetCaption(AValue: String);
+procedure TTFButton.SetCaption(AValue: string);
 begin
-  if FCaption=AValue then Exit;
-  FCaption:=AValue;
-  FChanged:=True;
+  if FCaption = AValue then
+    Exit;
+  FCaption := AValue;
+  FChanged := True;
 end;
 
 procedure TTFButton.Draw(ACanvas: TTextCanvas);
 begin
   inherited Draw(ACanvas);
   case Align of
-      alLeft:
-        ACanvas.TextOut(Left, Top+(Height div 2),FCaption);
-      alRight:
-        ACanvas.TextOut(Left+Width-FCaption.Length, Top+(Height div 2),FCaption);
-      alCenter:
-        ACanvas.TextOut(Left+((Width - FCaption.Length) div 2), Top+(Height div 2),FCaption);
-    end;
+    alLeft:
+      ACanvas.TextOut(Left, Top + (Height div 2), FCaption.Substring(0, Width));
+    alRight:
+      ACanvas.TextOut(Left + Width - FCaption.Substring(0, Width).Length,
+        Top + (Height div 2), FCaption.Substring(0, Width));
+    alCenter:
+      ACanvas.TextOut(Left + ((Width - FCaption.Substring(0, Width).Length) div 2),
+        Top + (Height div 2), FCaption.Substring(0, Width));
+  end;
 end;
 
-function TTFButton.ProcessInput(inp: String): Boolean;
+function TTFButton.ProcessInput(inp: string): boolean;
 begin
-  Result:=inp=#13;
-  if Result and Assigned(FOnClick) then FOnClick(Self);
+  Result := inp = #13;
+  if Result and Assigned(FOnClick) then
+    FOnClick(Self);
+  if not Result then
+    Result := inherited ProcessInput(inp);
 end;
 
 constructor TTFButton.Create(AParent: TTextForm);
 begin
   inherited Create(AParent);
-  Width:=20;
-  Height:=3;
-  Foreground:=RGB(0,0,0);
-  Background:=RGB(200,200,200);
-  FocusedBackground:=RGB(255,0,0);
-  FocusedForeground:=RGB(255,255,255);
-  Caption:='Click me';
+  Width := 20;
+  Height := 3;
+  Foreground := RGB(0, 0, 0);
+  Background := RGB(200, 200, 200);
+  FocusedBackground := RGB(255, 0, 0);
+  FocusedForeground := RGB(255, 255, 255);
+  Caption := 'Click me';
 end;
 
 { TTFEdit }
 
 procedure TTFEdit.SetAlign(AValue: TAlign);
 begin
-  if FAlign = AValue then Exit;
-  FAlign:=AValue;
-  FChanged:=True;
+  if FAlign = AValue then
+    Exit;
+  FAlign := AValue;
+  FChanged := True;
 end;
 
 procedure TTFEdit.SetCursorColor(AValue: TColor);
 begin
-  if FCursorColor=AValue then Exit;
-  FCursorColor:=AValue;
-  FChanged:=True;
+  if FCursorColor = AValue then
+    Exit;
+  FCursorColor := AValue;
+  FChanged := True;
 end;
 
-procedure TTFEdit.SetPosition(AValue: Integer);
+procedure TTFEdit.SetPosition(AValue: integer);
 begin
-  if FCursorPos=AValue then Exit;
-  FCursorPos:=AValue;
-  FChanged:=True;
+  if FCursorPos = AValue then
+    Exit;
+  FCursorPos := AValue;
+  FChanged := True;
 end;
 
-procedure TTFEdit.SetText(AValue: String);
+procedure TTFEdit.SetText(AValue: string);
 begin
-  if FText=AValue then Exit;
-  FText:=AValue;
-  FChanged:=True;
-  if FText.Length<FCursorPos then FCursorPos:=FText.Length;
+  if FText = AValue then
+    Exit;
+  FText := AValue;
+  FChanged := True;
+  if FText.Length < FCursorPos then
+    FCursorPos := FText.Length;
 end;
 
 procedure TTFEdit.Draw(ACanvas: TTextCanvas);
-var fg, bg: TColor;
+var
+  fg, bg: TColor;
+  t: string;
+  l: integer;
 begin
   if Focused then
   begin
-    fg:=FocusedForeground;
-    bg:=FocusedBackground;
+    fg := FocusedForeground;
+    bg := FocusedBackground;
   end
   else
   begin
-    fg:=Foreground;
-    bg:=Background;
+    fg := Foreground;
+    bg := Background;
   end;
   inherited Draw(ACanvas);
+  t := Text.Substring(0, Width);
   case Align of
-  alLeft:
-  begin
-    ACanvas.SetColor(fg, bg);
-    ACanvas.TextOut(Left, Top,Text.Substring(0, FCursorPos));
-    ACanvas.SetColor(fg,CursorColor);
-    if Text.Length=FCursorPos then
-      ACanvas.TextOut(left+FCursorPos, Top, ' ')
-    else
+    alLeft:
+      l := Left;
+    alRight:
     begin
-      ACanvas.TextOut(Left+FCursorPos, Top, Text.Substring(FCursorPos, 1));
-      ACanvas.SetColor(fg, bg);
-      ACanvas.TextOut(Left+FCursorPos+1, Top,Text.Substring(FCursorPos+1));
+      l := Left + Width - t.Length;
     end;
+    alCenter:
+      l := Left + ((Width - t.Length) div 2);
   end;
-  alRight:
-    ACanvas.TextOut(Left+Width-Text.Length, Top,Text);
-  alCenter:
-    ACanvas.TextOut(Left+((Width - Text.Length) div 2), Top, Text);
+  ACanvas.SetColor(fg, bg);
+  ACanvas.TextOut(l, Top, t.Substring(0, FCursorPos));
+  ACanvas.SetColor(fg, CursorColor);
+  if Text.Length = FCursorPos then
+    ACanvas.TextOut(l + FCursorPos, Top, ' ')
+  else
+  begin
+    ACanvas.TextOut(l + FCursorPos, Top, t.Substring(FCursorPos, 1));
+    ACanvas.SetColor(fg, bg);
+    ACanvas.TextOut(l + FCursorPos + 1, Top, t.Substring(FCursorPos + 1));
   end;
 end;
 
-function TTFEdit.ProcessInput(inp: String): Boolean;
+function TTFEdit.ProcessInput(inp: string): boolean;
 begin
-  Result:=True;
+  Result := True;
   case GetArrow(inp) of
-  akLeft: Position:=Max(0, Position-1);
-  akRight: Position:=Min(Text.Length, Position+1);
-  akUp, akDown: Result:=False;
-  akNone:
-    case inp[1] of
-    #8, #127:
-     begin
-       // FText because of FCursorPos
-      FText:=FText.Substring(0, FCursorPos-1)+FText.Substring(FCursorPos);
-      FCursorPos:=Max(0, FCursorPos-1);
-      FChanged:=True;
-       if Assigned(FOnChange) then
-        FOnChange(Self);
-     end;
-    #13: if Assigned(FOnEnterKey) then
-      FOnEnterKey(Self)
-      else
-        Result:=False;
-    #33..#126, #128..#254:
-     if (NumbersOnly and (inp[1] in ['0'..'9'])) or not NumbersOnly then
-     begin
-      Text:=FText.Substring(0, FCursorPos)+inp[1]+FText.Substring(FCursorPos);
-       inc(FCursorPos);
-       if Assigned(FOnChange) then
-        FOnChange(Self);
-     end;
-    else Result:=False;
-    end;
+    akLeft: Position := Max(0, Position - 1);
+    akRight: Position := Min(Text.Length, Position + 1);
+    akUp, akDown: Result := False;
+    akNone:
+      case inp[1] of
+        #8, #127:
+        begin
+          // FText because of FCursorPos
+          FText := FText.Substring(0, FCursorPos - 1) + FText.Substring(FCursorPos);
+          FCursorPos := Max(0, FCursorPos - 1);
+          FChanged := True;
+          if Assigned(FOnChange) then
+            FOnChange(Self);
+        end;
+        #13: if Assigned(FOnEnterKey) then
+            FOnEnterKey(Self)
+          else
+            Result := False;
+        #33..#126, #128..#254:
+          if (NumbersOnly and (inp[1] in ['0'..'9'])) or not NumbersOnly then
+          begin
+            Text := FText.Substring(0, FCursorPos) + inp[1] +
+              FText.Substring(FCursorPos);
+            Inc(FCursorPos);
+            if Assigned(FOnChange) then
+              FOnChange(Self);
+          end;
+        else
+          Result := False;
+      end;
   end;
+  if not Result then
+    Result := inherited ProcessInput(inp);
 end;
 
 constructor TTFEdit.Create(AParent: TTextForm);
 begin
   inherited Create(AParent);
-  Width:=20;
-  Height:=1;
-  Align:=alLeft;
-  Background:=RGB(255,255,255);
-  Foreground:=RGB(0,0,0);
-  FCursorColor:=RGB(196,196,196);
-  FocusedBackground:=RGB(0,128,255);
-  FocusedForeground:=Background;
-  FText:='Edit';
-  FCursorPos:=FText.Length;
+  Width := 20;
+  Height := 1;
+  Align := alLeft;
+  Background := RGB(255, 255, 255);
+  Foreground := RGB(0, 0, 0);
+  FCursorColor := RGB(196, 196, 196);
+  FocusedBackground := RGB(0, 128, 255);
+  FocusedForeground := Background;
+  FText := 'Edit';
+  FCursorPos := FText.Length;
 end;
 
 destructor TTFEdit.Destroy;
@@ -255,48 +397,51 @@ end;
 
 procedure TTFLabel.SetAlign(AValue: TAlign);
 begin
-  if FAlign=AValue then Exit;
-  FAlign:=AValue;
-  FChanged:=True;
+  if FAlign = AValue then
+    Exit;
+  FAlign := AValue;
+  FChanged := True;
 end;
 
 procedure TTFLabel.TextChanged(Sender: TObject);
 var
-  s: String;
+  s: string;
 begin
-  FChanged:=True;
+  FChanged := True;
   if AutoSize then
   begin
-    Height:=Text.Count;
+    Height := Text.Count;
     for s in Text do
-      if s.Length>Width then Width:=s.Length;
+      if s.Length > Width then
+        Width := s.Length;
   end;
 end;
 
 procedure TTFLabel.Draw(ACanvas: TTextCanvas);
 var
-  i: Integer;
+  i: integer;
 begin
   inherited Draw(ACanvas);
-    for i:=0 to Text.Count-1 do
-      case Align of
+  for i := 0 to Text.Count - 1 do
+    case Align of
       alLeft:
-        ACanvas.TextOut(Left, Top+i,Text[i]);
+        ACanvas.TextOut(Left, Top + i, Text[i]);
       alRight:
-        ACanvas.TextOut(Left+Width-Text[i].Length, Top+i,Text[i]);
+        ACanvas.TextOut(Left + Width - Text[i].Length, Top + i, Text[i]);
       alCenter:
-        ACanvas.TextOut(Left+((Width - Text[i].Length) div 2), Top+i,Text[i]);
+        ACanvas.TextOut(Left + ((Width - Text[i].Length) div 2), Top + i, Text[i]);
     end;
 end;
 
 constructor TTFLabel.Create(AParent: TTextForm);
 begin
   inherited Create(AParent);
-  Foreground:=RGB(255,255,255);
-  Background:=Transparency;
-  AutoSize:=True;
-  FText:=TStringList.Create;
-  FText.OnChange:=@TextChanged;
+  Foreground := RGB(255, 255, 255);
+  Background := Transparency;
+  AutoSize := True;
+  FText := TStringList.Create;
+  FText.Text := 'Hallo Welt!';
+  FText.OnChange := @TextChanged;
 end;
 
 destructor TTFLabel.Destroy;
@@ -306,4 +451,3 @@ begin
 end;
 
 end.
-

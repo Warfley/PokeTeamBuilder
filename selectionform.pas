@@ -59,8 +59,9 @@ begin
   ListBox.Top:=m.y-4;
   ListBox.Left:=m.x-(ListBox.Width div 2);
 
-  Continue.Left:=Width-Continue.Width;
+  Continue.Left:=Width-Continue.Width-1;
   Continue.Top:=Height-Continue.Height;
+  inherited Resize;
 end;
 
 function TSelectionForm.ProcessInput(inp: String): Boolean;

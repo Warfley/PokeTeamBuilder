@@ -102,11 +102,13 @@ begin
     FilterEdit.Left:=ListBox.Left;
     FilterEdit.Width:=ListBox.Width;
 
-    Continue.Left:=Width-Continue.Width;
+    Continue.Left:=Width-Continue.Width-1;
     Continue.Top:=Height-Continue.Height;
 
     if FilterEdit.Left+FilterEdit.Width>=Continue.Left then
       FilterEdit.Width:=Continue.Left-1 -FilterEdit.Left;
+
+    inherited Resize;
 end;
 
 function TCheckListForm.ProcessInput(inp: String): Boolean;
