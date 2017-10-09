@@ -6,7 +6,7 @@ unit TFControls;
 interface
 
 uses
-  Classes, SysUtils, TFTypes, TFCanvas, fgl, Controls;
+  Classes, SysUtils, TFTypes, TFCanvas, fgl;
 
 type
   TTextControl = class;

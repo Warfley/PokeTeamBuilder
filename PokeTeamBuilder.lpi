@@ -94,14 +94,6 @@
         <LaunchingApplication PathPlusParams="\usr\bin\konsole -T 'Lazarus Run Output' -e $(LazarusDir)\tools\runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
-    <RequiredPackages Count="2">
-      <Item1>
-        <PackageName Value="LCL"/>
-      </Item1>
-      <Item2>
-        <PackageName Value="sqlite3laz"/>
-      </Item2>
-    </RequiredPackages>
     <Units Count="13">
       <Unit0>
         <Filename Value="PokeTeamBuilder.lpr"/>

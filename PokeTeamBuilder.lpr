@@ -6,12 +6,9 @@ uses {$IFDEF UNIX}
   cthreads,
   termio, {$ENDIF}
   Classes,
-  LazUTF8,
   SysUtils,
   CustApp,
   PkTBTypes,
-  sqlite3laz,
-  Interfaces,
   listrecords,
   pktb,
   TFTypes,
