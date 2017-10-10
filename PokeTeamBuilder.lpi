@@ -30,6 +30,7 @@
           </Target>
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
+            <OtherUnitFiles Value="LazTextForms"/>
             <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <Parsing>
@@ -65,6 +66,7 @@
           </Target>
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
+            <OtherUnitFiles Value="LazTextForms"/>
             <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <CodeGeneration>
@@ -113,49 +115,45 @@
         <IsPartOfProject Value="True"/>
       </Unit3>
       <Unit4>
-        <Filename Value="tfcanvas.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="TFCanvas"/>
-      </Unit4>
-      <Unit5>
-        <Filename Value="tftypes.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="TFTypes"/>
-      </Unit5>
-      <Unit6>
-        <Filename Value="tfcontrols.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="TFControls"/>
-      </Unit6>
-      <Unit7>
-        <Filename Value="tfbasecontrols.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="TFBaseControls"/>
-      </Unit7>
-      <Unit8>
         <Filename Value="startupform.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="StartUpForm"/>
-      </Unit8>
-      <Unit9>
+      </Unit4>
+      <Unit5>
         <Filename Value="checklistform.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="CheckListForm"/>
-      </Unit9>
-      <Unit10>
+      </Unit5>
+      <Unit6>
         <Filename Value="selectionform.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="SelectionForm"/>
-      </Unit10>
-      <Unit11>
-        <Filename Value="tflists.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="TFLists"/>
-      </Unit11>
-      <Unit12>
+      </Unit6>
+      <Unit7>
         <Filename Value="showteamform.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="ShowTeamForm"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="LazTextForms\tfbasecontrols.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit8>
+      <Unit9>
+        <Filename Value="LazTextForms\tfcanvas.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit9>
+      <Unit10>
+        <Filename Value="LazTextForms\tfcontrols.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit10>
+      <Unit11>
+        <Filename Value="LazTextForms\tflists.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit11>
+      <Unit12>
+        <Filename Value="LazTextForms\tftypes.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="TFTypes"/>
       </Unit12>
     </Units>
   </ProjectOptions>
@@ -167,6 +165,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
+      <OtherUnitFiles Value="LazTextForms"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
   </CompilerOptions>

@@ -11,14 +11,11 @@ uses {$IFDEF UNIX}
   PkTBTypes,
   listrecords,
   pktb,
-  TFTypes,
-  TFCanvas,
-  TFControls,
-  TFBaseControls,
   StartUpForm,
   CheckListForm,
   SelectionForm,
-  TFLists, ShowTeamForm;
+  ShowTeamForm,
+  tfCanvas;
 
 type
 
