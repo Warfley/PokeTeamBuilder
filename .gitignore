@@ -1,4 +1,6 @@
 LazTextForms/
+#Unix Executeable
+PokeTeamBuilder
 # Lazarus compiler-generated binaries (safe to delete)
 *.exe
 *.dll
