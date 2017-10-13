@@ -137,14 +137,17 @@
       <Unit8>
         <Filename Value="LazTextForms\tfbasecontrols.pas"/>
         <IsPartOfProject Value="True"/>
+        <UnitName Value="TFBaseControls"/>
       </Unit8>
       <Unit9>
         <Filename Value="LazTextForms\tfcanvas.pas"/>
         <IsPartOfProject Value="True"/>
+        <UnitName Value="TFCanvas"/>
       </Unit9>
       <Unit10>
         <Filename Value="LazTextForms\tfcontrols.pas"/>
         <IsPartOfProject Value="True"/>
+        <UnitName Value="TFControls"/>
       </Unit10>
       <Unit11>
         <Filename Value="LazTextForms\tflists.pas"/>
