@@ -431,7 +431,7 @@ end;
     try
       if not longbool(ParamCount) then
        {$IfDef UNIX}
-        if not longbool(IsATTY(StdInputHandle)) then
+        if IsATTY(StdInputHandle) = 0 then
           StartStdCLI(DB, pktb)
         else
        {$EndIf}
