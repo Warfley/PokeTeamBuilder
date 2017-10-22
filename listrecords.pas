@@ -59,6 +59,7 @@ type
 
   TTeam = record
     Strength: array of TTypeFactor;
+    Weakness: array of TTypeFactor;
     Pokemon: array of TPokemon;
     class operator Equal(a,b: TTeam): Boolean;
   end;

@@ -5,7 +5,7 @@ unit pktb;
 interface
 
 uses
-  Classes, SysUtils, fgl, PkTBTypes, listrecords, math;
+  Classes, SysUtils, fgl, PkTBTypes, listrecords, Math;
 
 type
   TSelectLanguageEvent = function(const Languages: TLanguageList): integer of object;
@@ -50,7 +50,7 @@ type
 
 const
   MoveValue = 200;
-  FactorDivisor = 40;
+  FactorDivisor = 5;
   Shuffle = 5;
 
 
@@ -58,99 +58,124 @@ implementation
 
 { TPKTB }
 
-function GetStrength(TID: Integer; Team: TTeam): Integer;
+function GetStrength(TID: integer; Team: TTeam): integer;
 var
-  i: Integer;
+  i: integer;
 begin
-  for i:=0 to Length(Team.Strength) -1 do
+  for i := 0 to Length(Team.Strength) - 1 do
     if Team.Strength[i].TID = TID then
     begin
-      Result:=Team.Strength[i].Factor;
+      Result := Team.Strength[i].Factor;
       Exit;
     end;
-  Result:=0;
+  Result := 0;
+end;
+
+function GetWeakness(TID: integer; Team: TTeam): integer;
+var
+  i: integer;
+begin
+  for i := 0 to Length(Team.Weakness) - 1 do
+    if Team.Weakness[i].TID = TID then
+    begin
+      Result := Team.Weakness[i].Factor;
+      Exit;
+    end;
+  Result := 0;
 end;
 
 procedure TPKTB.GenTeam(var Team: TTeam; Count: integer; var Pool: TPokemonList;
   var Moves: TMoveList);
+
+  function GetTypeWeight(tid: integer; const SAvg, WAvg: integer): integer;
+  var
+    i, j: integer;
+  begin
+    Result := 0;
+    if FStrengthTable.FindType(tid) < 0 then
+      tid := 1;
+    for i := 0 to FStrengthTable.Count - 1 do
+      if FStrengthTable[i].ID = tid then
+      begin
+        for j := 0 to Length(FStrengthTable[i].Factors) - 1 do
+          if GetStrength(tid, Team) <= SAvg then
+          begin
+            Inc(Result, FStrengthTable[i].Factors[j].Factor div FactorDivisor);
+          end;
+      end
+      else if GetWeakness(FStrengthTable[i].ID, Team) >= WAvg then
+        for j := 0 to Length(FStrengthTable[i].Factors) - 1 do
+          if (FStrengthTable[i].Factors[j].TID = tid) then
+          begin
+            Dec(Result, FStrengthTable[i].Factors[j].Factor div FactorDivisor);
+          end;
+
+  end;
+
 var
-  Weight: array of Integer;
+  Weight: array of integer;
   pkmn: TPokemon;
-  w, j, i: Integer;
-  t: TTypeStrength;
-  avg: Integer;
+  w, j, i: integer;
+  SAvg, WAvg: integer;
 begin
   CalcStrength(Team);
-  avg:=0;
-  for i:=0 to Length(Team.Strength)-1 do
-    inc(avg, Team.Strength[i].Factor);
-  avg := avg div Length(Team.Strength);
+  Savg := 0;
+  Wavg:=0;
+  for i := 0 to Length(Team.Strength) - 1 do
+  begin
+    Inc(Savg, Team.Strength[i].Factor);
+    Inc(Wavg, Team.Weakness[i].Factor);
+  end;
+  Savg := Savg div Length(Team.Strength);
+  WAvg := Wavg div Length(Team.Weakness);
   if Count = 0 then
     exit;
   SetLength(Weight, Pool.Count);
-  for i:=0 to Pool.Count -1 do
+  for i := 0 to Pool.Count - 1 do
   begin
-    w:=0;
-    pkmn:=Pool[i];
-    for j:=0 to Length(pkmn.Moves) - 1 do
+    w := 0;
+    pkmn := Pool[i];
+    for j := 0 to Length(pkmn.Moves) - 1 do
     begin
       if pkmn.Moves[j].Available and (Moves.FindMove(pkmn.Moves[j].MID) >= 0) then
-        if (pkmn.Type1=Moves[j].TypeID) or (pkmn.Type2=Moves[j].TypeID) then
-           inc(w, (MoveValue div Count)*2)
+        if (pkmn.Type1 = Moves[j].TypeID) or (pkmn.Type2 = Moves[j].TypeID) then
+          Inc(w, (MoveValue div Count) * 2)
         else
-          inc(w, MoveValue div Count);
+          Inc(w, MoveValue div Count);
     end;
-    j:=FStrengthTable.FindType(pkmn.Type1);
-    if j<0 then j:=FStrengthTable.FindType(1);
-    t:=FStrengthTable[j];
-    for j := 0 to Length(t.Factors) - 1 do
-      if GetStrength(t.Factors[j].TID, Team) <= avg  then  // this is biased towards types with many strengths (e.g. earth)
-      begin
-        inc(w, t.Factors[j].Factor div FactorDivisor);
-        if Random(100) < 50 then break; // so randomly break after the first few, to let only some account
-      end;
-    if pkmn.Type2>0 then
-    begin
-    j:=FStrengthTable.FindType(pkmn.Type2);
-    if j<0 then j:=FStrengthTable.FindType(1);
-    t:=FStrengthTable[j];
-      for j := 0 to Length(t.Factors) - 1 do
-        if GetStrength(t.Factors[j].TID, Team) <= avg then
-        begin
-          inc(w, t.Factors[j].Factor div FactorDivisor);
-        if Random(100) < 50 then break;
-        end;
-    end;
-    Weight[i]:=w+Random((count div 2)**Shuffle);
+    Inc(w, GetTypeWeight(pkmn.Type1, SAvg, WAvg) div Count);
+    if pkmn.Type2 > 0 then
+      Inc(w, GetTypeWeight(pkmn.Type2, SAvg, WAvg) div Count);
+    Weight[i] := w + Random((Count div 2) * Shuffle);
   end;
-  i:=-1;
-  j:=-1;
-  for w:=0 to Pool.Count-1 do
+  i := -1;
+  j := -1;
+  for w := 0 to Pool.Count - 1 do
     if Weight[w] > j then
     begin
-      j:=Weight[w];
-      i:=w;
+      j := Weight[w];
+      i := w;
     end;
-  for j:=0 to Length(Team.Pokemon) -1 do
+  for j := 0 to Length(Team.Pokemon) - 1 do
     if Team.Pokemon[j].ID = 0 then
     begin
       Team.Pokemon[j] := Pool[i];
       Pool.Delete(i);
-      for w:=0 to Length(Team.Pokemon[j].Moves)-1 do
+      for w := 0 to Length(Team.Pokemon[j].Moves) - 1 do
         if Team.Pokemon[j].Moves[w].Available then
         begin
-          i:=Moves.FindMove(Team.Pokemon[j].Moves[w].MID);
-          if i >=0 then
+          i := Moves.FindMove(Team.Pokemon[j].Moves[w].MID);
+          if i >= 0 then
             Moves.Delete(i);
         end;
       Break;
     end;
-  GenTeam(Team, Count-1, Pool, Moves);
+  GenTeam(Team, Count - 1, Pool, Moves);
 end;
 
 procedure TPKTB.CalcStrength(var Team: TTeam);
 
-  procedure AddType(tp, val: integer);
+  procedure AddStrength(tp, val: integer);
   var
     i: integer;
   begin
@@ -159,26 +184,42 @@ procedure TPKTB.CalcStrength(var Team: TTeam);
         Team.Strength[i].Factor += val;
   end;
 
+  procedure AddWeakness(tp, val: integer);
+  var
+    i: integer;
+  begin
+    for i := 0 to Length(Team.Weakness) - 1 do
+      if Team.Weakness[i].TID = tp then
+        Team.Weakness[i].Factor += val;
+  end;
+
 var
-  i, t1, t2, j: integer;
+  i, t1, t2, j, k: integer;
 begin
   for i := 0 to Length(Team.Strength) - 1 do
+  begin
     Team.Strength[i].Factor := 0;
+    Team.Weakness[i].Factor := 0;
+  end;
+
   for i := 0 to Length(Team.Pokemon) - 1 do
   begin
-    if Team.Pokemon[i].ID=0 then Continue;
-    t1 := FStrengthTable.FindType(Team.Pokemon[i].Type1);
-    if t1 < 0 then t1 := FStrengthTable.FindType(1);
-    for j := 0 to length(FStrengthTable[t1].Factors) - 1 do
-      AddType(FStrengthTable[t1].Factors[j].TID, FStrengthTable[t1].Factors[j].Factor);
-    if Team.Pokemon[i].Type2 > 0 then
-    begin
-      t2 := FStrengthTable.FindType(Team.Pokemon[i].Type2);   
-      if t2 < 0 then t2 := FStrengthTable.FindType(1);
-      if t2 = t1 then Continue;
-      for j := 0 to length(FStrengthTable[t2].Factors) - 1 do
-        AddType(FStrengthTable[t2].Factors[j].TID, FStrengthTable[t2].Factors[j].Factor);
-    end;
+    t1 := Team.Pokemon[i].Type1;
+    if FStrengthTable.FindType(t1) < 0 then
+      t1 := 1;
+    t2 := Team.Pokemon[i].Type2;
+    if (t2 > 0) and (FStrengthTable.FindType(t2) < 0) then
+      t2 := 1;
+    for j := 0 to FStrengthTable.Count - 1 do
+      if (FStrengthTable[j].ID = t1) or (FStrengthTable[j].ID = t2) then
+        for k := 0 to Length(FStrengthTable[j].Factors) - 1 do
+          AddStrength(FStrengthTable[j].Factors[k].TID,
+            FStrengthTable[j].Factors[k].Factor)
+      else
+        for k := 0 to Length(FStrengthTable[j].Factors) - 1 do
+          if (FStrengthTable[j].Factors[k].TID = t1) or
+            (FStrengthTable[j].Factors[k].TID = t2) then
+            AddWeakness(FStrengthTable[j].ID, FStrengthTable[j].Factors[k].Factor);
   end;
 end;
 
@@ -212,7 +253,7 @@ var
   mv: TDynIntArray;
   i: integer;
   t: TTeam;
-  btSize: Integer;
+  btSize: integer;
   localPool: TPokemonList;
 begin
   if not (Assigned(SelectLanguage) and Assigned(SelectGeneration) and
@@ -253,44 +294,52 @@ begin
   SetLength(FBaseTeam.Strength, FStrengthTable.Count);
   for i := 0 to Length(FBaseTeam.Strength) - 1 do
   begin
-    FBaseTeam.Strength[i].TID := FStrengthTable[i].ID;  
+    FBaseTeam.Strength[i].TID := FStrengthTable[i].ID;
     FBaseTeam.Strength[i].Name := FStrengthTable[i].Name;
   end;
 
-  SetLength(mv, FMoves.Count);
-  for i:=0 to FMoves.Count-1 do
-    mv[i]:=FMoves[i].AttackID;
+  SetLength(FBaseTeam.Weakness, FStrengthTable.Count);
+  for i := 0 to Length(FBaseTeam.Weakness) - 1 do
+  begin
+    FBaseTeam.Weakness[i].TID := FStrengthTable[i].ID;
+    FBaseTeam.Weakness[i].Name := FStrengthTable[i].Name;
+  end;
 
-  btSize:=0;
+  SetLength(mv, FMoves.Count);
+  for i := 0 to FMoves.Count - 1 do
+    mv[i] := FMoves[i].AttackID;
+
+  btSize := 0;
 
   FPokePool.LoadPokemons(FDB, FLanguage.ID, FEdition, SelectObtainableKinds(), mv);
   ia := SelectPokemon(FPokePool);
   for i := 0 to length(ia) - 1 do
   begin
-    inc(btSize);
+    Inc(btSize);
     FBaseTeam.Pokemon[i] := FPokePool[ia[i] - i];
     FPokePool.Delete(ia[i] - i);
   end;
-  SetLength(ia,0);
+  SetLength(ia, 0);
 
   ia := SelectIgnore(FPokePool);
   for i := 0 to length(ia) - 1 do
     FPokePool.Delete(ia[i] - i);
 
-  localPool:=TPokemonList.Create;
-  lm:=TMoveList.Create;
+  localPool := TPokemonList.Create;
+  lm := TMoveList.Create;
   try
-  for i := 0 to TeamCount - 1 do
-  begin
-    localPool.Assign(FPokePool);
-    lm.Assign(FMoves);
-    t:=FBaseTeam;
-    SetLength(t.Pokemon, Length(t.Pokemon));
-    FillChar(t.Pokemon[btSize], SizeOf(TPokemon)*TeamSize-btSize, #00);
-    SetLength(t.Strength, Length(t.Strength));
-    GenTeam(t, TeamSize-btSize, localPool, lm);
-    TeamGenerated(t);
-  end;
+    for i := 0 to TeamCount - 1 do
+    begin
+      localPool.Assign(FPokePool);
+      lm.Assign(FMoves);
+      t := FBaseTeam;
+      SetLength(t.Pokemon, Length(t.Pokemon));
+      FillChar(t.Pokemon[btSize], SizeOf(TPokemon) * TeamSize - btSize, #00);
+      SetLength(t.Strength, Length(t.Strength));
+      SetLength(t.Weakness, Length(t.Weakness));
+      GenTeam(t, TeamSize - btSize, localPool, lm);
+      TeamGenerated(t);
+    end;
   finally
     lm.Free;
     localPool.Free;
@@ -298,4 +347,3 @@ begin
 end;
 
 end.
-

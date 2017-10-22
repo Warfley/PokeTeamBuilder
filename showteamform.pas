@@ -17,7 +17,7 @@ type
     FPKTB: TPKTB;
     FTeam: TTeam;
 
-    TeamStats: array of array[0..1] of TTFLabel;
+    TeamStats: array of array[0..2] of TTFLabel;
     PokeSelector: TTFListBox;
     PokeStats: TTFLabel;
 
@@ -91,9 +91,11 @@ begin
     for i:=0 to l -1 do
     begin
       TeamStats[i][0].Left:=(Width div 3) * 2 + 1;
-      TeamStats[i][0].Top:=m.y-(l div 2)+i;     
+      TeamStats[i][0].Top:=m.y-(l div 2)+i;
       TeamStats[i][1].Left:=TeamStats[i][0].Left+TeamStats[i][0].Width+1;
       TeamStats[i][1].Top:=m.y-(l div 2)+i;
+      TeamStats[i][2].Left:=TeamStats[i][1].Left+5;
+      TeamStats[i][2].Top:=m.y-(l div 2)+i;
     end;
 
     l:=PokeStats.Height+1+MovesLabel.Height+Length(MoveLabel);
@@ -146,6 +148,14 @@ begin
         TeamStats[i][1].Foreground:=RGB(255,255,0)
       else
         TeamStats[i][1].Foreground:=RGB(0,255,0);
+      TeamStats[i][2]:=TTFLabel.Create(Self);
+      TeamStats[i][2].Text.Text:=Team.Weakness[i].Factor.ToString;
+      if Team.Weakness[i].Factor <= Length(Team.Pokemon)*150 then
+        TeamStats[i][2].Foreground:=RGB(0,255,0)
+      else if Team.Weakness[i].Factor <= Length(Team.Pokemon)*200 then
+        TeamStats[i][2].Foreground:=RGB(255,255,0)
+      else
+        TeamStats[i][2].Foreground:=RGB(255,0,0);
     end;
 
     PokeSelector:=TTFListBox.Create(self);
