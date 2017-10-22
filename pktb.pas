@@ -50,8 +50,9 @@ type
 
 const
   MoveValue = 200;
-  FactorDivisor = 5;
-  Shuffle = 5;
+  FactorDivisor = 10;
+  Shuffle = 10;
+  SingleTypeBonus = 5;
 
 
 implementation
@@ -87,7 +88,7 @@ end;
 procedure TPKTB.GenTeam(var Team: TTeam; Count: integer; var Pool: TPokemonList;
   var Moves: TMoveList);
 
-  function GetTypeWeight(tid: integer; const SAvg, WAvg: integer): integer;
+  function GetTypeWeight(tid: integer; const SAvg, WAvg: Int64): integer;
   var
     i, j: integer;
   begin
@@ -104,11 +105,13 @@ procedure TPKTB.GenTeam(var Team: TTeam; Count: integer; var Pool: TPokemonList;
           end;
       end
       else if GetWeakness(FStrengthTable[i].ID, Team) >= WAvg then
+      begin
         for j := 0 to Length(FStrengthTable[i].Factors) - 1 do
           if (FStrengthTable[i].Factors[j].TID = tid) then
           begin
             Dec(Result, FStrengthTable[i].Factors[j].Factor div FactorDivisor);
           end;
+      end;
 
   end;
 
@@ -116,8 +119,11 @@ var
   Weight: array of integer;
   pkmn: TPokemon;
   w, j, i: integer;
-  SAvg, WAvg: integer;
-begin
+  SAvg, WAvg: Int64;
+begin      
+  if Count = 0 then
+    exit;
+  // Strength and Weaknessfactors as metric
   CalcStrength(Team);
   Savg := 0;
   Wavg:=0;
@@ -128,13 +134,18 @@ begin
   end;
   Savg := Savg div Length(Team.Strength);
   WAvg := Wavg div Length(Team.Weakness);
-  if Count = 0 then
-    exit;
+  // Weighting
   SetLength(Weight, Pool.Count);
   for i := 0 to Pool.Count - 1 do
   begin
     w := 0;
     pkmn := Pool[i];
+    // Weakness, Strengths
+    Inc(w, GetTypeWeight(pkmn.Type1, SAvg, WAvg) div Count);
+    if pkmn.Type2 > 0 then
+      Inc(w, GetTypeWeight(pkmn.Type2, SAvg, WAvg) div Count)
+    else
+      Inc(w, Random((Count div 2) * SingleTypeBonus)); // Single type bonus
     for j := 0 to Length(pkmn.Moves) - 1 do
     begin
       if pkmn.Moves[j].Available and (Moves.FindMove(pkmn.Moves[j].MID) >= 0) then
@@ -142,14 +153,11 @@ begin
           Inc(w, (MoveValue div Count) * 2)
         else
           Inc(w, MoveValue div Count);
-    end;
-    Inc(w, GetTypeWeight(pkmn.Type1, SAvg, WAvg) div Count);
-    if pkmn.Type2 > 0 then
-      Inc(w, GetTypeWeight(pkmn.Type2, SAvg, WAvg) div Count);
-    Weight[i] := w + Random((Count div 2) * Shuffle);
+    end;   
+    Weight[i] := w + Random((Count div 2) * SingleTypeBonus);
   end;
   i := -1;
-  j := -1;
+  j := Integer.MinValue;
   for w := 0 to Pool.Count - 1 do
     if Weight[w] > j then
     begin
