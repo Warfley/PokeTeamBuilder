@@ -142,17 +142,17 @@ begin
       TeamStats[i][0].Text.Text:=Team.Strength[i].Name;
       TeamStats[i][1]:=TTFLabel.Create(Self);
       TeamStats[i][1].Text.Text:=Team.Strength[i].Factor.ToString;
-      if Team.Strength[i].Factor <= Length(Team.Pokemon)*100+100 then
+      if Team.Strength[i].Factor < Length(Team.Pokemon)*100 then
         TeamStats[i][1].Foreground:=RGB(255,0,0)
-      else if Team.Strength[i].Factor <= Length(Team.Pokemon)*150+100 then
+      else if Team.Strength[i].Factor < Length(Team.Pokemon)*150 then
         TeamStats[i][1].Foreground:=RGB(255,255,0)
       else
         TeamStats[i][1].Foreground:=RGB(0,255,0);
       TeamStats[i][2]:=TTFLabel.Create(Self);
       TeamStats[i][2].Text.Text:=Team.Weakness[i].Factor.ToString;
-      if Team.Weakness[i].Factor <= Length(Team.Pokemon)*150 then
+      if Team.Weakness[i].Factor < Length(Team.Pokemon)*100 then
         TeamStats[i][2].Foreground:=RGB(0,255,0)
-      else if Team.Weakness[i].Factor <= Length(Team.Pokemon)*200 then
+      else if Team.Weakness[i].Factor < Length(Team.Pokemon)*150 then
         TeamStats[i][2].Foreground:=RGB(255,255,0)
       else
         TeamStats[i][2].Foreground:=RGB(255,0,0);
