@@ -1,1 +1,1 @@
- -MObjFPC -Scghi -O1 -g -gl -l -vewnhibq -Filib\i386-win32 -FuLazTextForms -Fu. -FUlib\i386-win32
+fpc  -MObjFPC -Scghi -CX -O3 -XX -l -vewnhibq -Filib -FuLazTextForms -Fu. -FUlib -FEbin/Release/
