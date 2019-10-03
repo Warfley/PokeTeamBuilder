@@ -5,14 +5,14 @@ unit Sampler;
 interface
 
 uses
-  Classes, SysUtils, gvector;
+  Classes, SysUtils, gvector, fgl;
 
 type
     ENoSamplesException = class(Exception);
 
-  { WeightedSampler }
+  { TWeightedSampler }
 
-  generic WeightedSampler<T> = class
+  generic TWeightedSampler<T> = class
   private
     type TWeightEntry = record
       Value: T;
@@ -20,7 +20,7 @@ type
       OffSet: extended;
     end;
     TWeightList = specialize TVector<TWeightEntry>;
-    TSampleList = specialize TVector<T>;
+    TSampleList = specialize TFPGList<T>;
     TGetWeightMethod =
     function(const Item: T): extended of object;
     TGetWeightFunction =
@@ -36,8 +36,13 @@ type
     FUpdate: boolean;
 
     procedure ConstructWeightList;
+    function getSampleableItems: TSampleList;
 
     function LookUpEntry(const Value: extended): T;
+    procedure setSampleableItems(AValue: TSampleList);
+
+  protected
+    function ComputeWeight(const Item: T): Extended; virtual;
 
   public
     constructor Create;
@@ -51,17 +56,17 @@ type
     procedure refresh;
 
     function Sample: T;
+
+    property SampleableItems: TSampleList read getSampleableItems write setSampleableItems;
   end;
 
 implementation
 
-{ WeightedSampler }
+{ TWeightedSampler }
 
-procedure WeightedSampler.ConstructWeightList;
+procedure TWeightedSampler.ConstructWeightList;
 var
   itm: T;
-  w1: TGetWeightFunction;
-  w2: TGetWeightMethod;
   weight: extended;
   tmp: TWeightEntry;
 begin
@@ -69,11 +74,7 @@ begin
   FTotalWeight := 0;
   for itm in FSampleableItems do
   begin
-    weight := 1.0;
-    for w1 in FWeighterFunctions do
-      weight *= w1(itm);
-    for w2 in FWeighterMethods do
-      weight *= w2(itm);
+    weight := ComputeWeight(itm);
 
     if weight = 0 then
       continue;
@@ -89,7 +90,13 @@ begin
   end;
 end;
 
-function WeightedSampler.LookUpEntry(const Value: extended): T;
+function TWeightedSampler.getSampleableItems: TSampleList;
+begin
+  Result:=FSampleableItems;
+  FUpdate:=True;
+end;
+
+function TWeightedSampler.LookUpEntry(const Value: extended): T;
 var
   currMin, currMax, idx: integer;
   tmp: TWeightEntry;
@@ -118,8 +125,28 @@ begin
   end;
 end;
 
-constructor WeightedSampler.Create;
+procedure TWeightedSampler.setSampleableItems(AValue: TSampleList);
 begin
+  if FSampleableItems=AValue then Exit;
+  FSampleableItems.Assign(AValue);
+  FUpdate:=True;
+end;
+
+function TWeightedSampler.ComputeWeight(const Item: T): Extended;
+var
+  w1: TGetWeightFunction;
+  w2: TGetWeightMethod;
+begin
+  Result := 1.0;
+    for w1 in FWeighterFunctions do
+      Result *= w1(Item);
+    for w2 in FWeighterMethods do
+      Result *= w2(Item);
+end;
+
+constructor TWeightedSampler.Create;
+begin           
+  Randomize;
   FWeights := TWeightList.Create;
   FSampleableItems := TSampleList.Create;
   FTotalWeight := 0;
@@ -128,7 +155,7 @@ begin
   FUpdate := False;
 end;
 
-destructor WeightedSampler.Destroy;
+destructor TWeightedSampler.Destroy;
 begin
   FWeights.Free;
   FSampleableItems.Free;
@@ -137,43 +164,43 @@ begin
   inherited Destroy;
 end;
 
-procedure WeightedSampler.addObject(const Item: T);
+procedure TWeightedSampler.addObject(const Item: T);
 begin
-  FSampleableItems.PushBack(Item);
+  FSampleableItems.Add(Item);
   FUpdate := True;
 end;
 
-procedure WeightedSampler.addWeighter(const Weighter: TGetWeightMethod);
+procedure TWeightedSampler.addWeighter(const Weighter: TGetWeightMethod);
 begin
   FWeighterMethods.PushBack(Weighter);
   FUpdate := True;
 end;
 
-procedure WeightedSampler.addWighter(const Weighter: TGetWeightFunction);
+procedure TWeightedSampler.addWighter(const Weighter: TGetWeightFunction);
 begin
   FWeighterFunctions.PushBack(Weighter);
   FUpdate := True;
 end;
 
-procedure WeightedSampler.ClearItems;
+procedure TWeightedSampler.ClearItems;
 begin
   FSampleableItems.Clear;
   FUpdate := True;
 end;
 
-procedure WeightedSampler.ClearWeighter;
+procedure TWeightedSampler.ClearWeighter;
 begin
   FWeighterFunctions.Clear;
   FWeighterMethods.Create;
   FUpdate := True;
 end;
 
-procedure WeightedSampler.refresh;
+procedure TWeightedSampler.refresh;
 begin
   FUpdate := True;
 end;
 
-function WeightedSampler.Sample: T;
+function TWeightedSampler.Sample: T;
 var
   val: Extended;
 begin

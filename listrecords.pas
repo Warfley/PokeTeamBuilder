@@ -61,6 +61,7 @@ type
     Strength: array of TTypeFactor;
     Weakness: array of TTypeFactor;
     Pokemon: array of TPokemon;
+    CurrentSize: Integer;
     class operator Equal(a,b: TTeam): Boolean;
   end;
 
@@ -72,7 +73,6 @@ type
     Factors: array of TTypeFactor;
     class operator Equal(a,b: TTypeStrength): Boolean;
   end;
-
 implementation
 
 { TTypeStrength }
@@ -88,7 +88,7 @@ class operator TTeam.Equal(a, b: TTeam): Boolean;
 var
   i, j: Integer;
 begin
-  Result := Length(a.Pokemon) = Length(b.pokemon);
+  Result := (a.CurrentSize = b.CurrentSize) And (Length(a.Pokemon) = Length(b.pokemon));
   if not Result then exit;
   for i:=0 to Length(a.Pokemon)-1 do
     for j:=0 to Length(b.Pokemon)-1 do

@@ -15,7 +15,7 @@ uses {$IFDEF UNIX}
   CheckListForm,
   SelectionForm,
   ShowTeamForm,
-  tfCanvas;
+  tfCanvas, Sampler;
 
 type
 

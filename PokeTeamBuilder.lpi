@@ -103,7 +103,7 @@
         </Mode0>
       </Modes>
     </RunParams>
-    <Units Count="13">
+    <Units Count="14">
       <Unit0>
         <Filename Value="PokeTeamBuilder.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -165,6 +165,11 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="TFTypes"/>
       </Unit12>
+      <Unit13>
+        <Filename Value="sampler.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Sampler"/>
+      </Unit13>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

@@ -19,345 +19,232 @@ type
 
   EInvalidParamsException = class(Exception);
 
+  TPokemonSampler = specialize TWeightedSampler<TPokemon>;
+
   { TPKTB }
 
   TPKTB = class
   private
-    FBaseTeam: TTeam;
-    FDB: TDBConnection;
-    FLanguage: TLanguage;
-    FMoves: TMoveList;
-    FEdition: TEdition;
-    FPokePool: TPokemonList;
+    FRequiredPokemon: TPokemonList;   
     FStrengthTable: TStrengthTable;
-    // Events
-    FTeamGenerated: TTeamGeneratedEvent;
+    FBannedPokemon: TPokemonList;
+    FRequiredMoves: TMoveList;
+    FTeamSize: Integer;
+    FSampledTeam: TTeam;
+    FStillRequiredMoves: TMoveList;
 
-    procedure GetTypeValues(tid: integer; var SC, WC: array of integer);
-    procedure GenTeam(var Team: TTeam; Count: integer; var Pool: TPokemonList;
-      var Moves: TMoveList);
-    procedure CalcStrength(var Team: TTeam);
+    FSampler: TPokemonSampler;
+
+    function ComputeWeight(const Item: TPokemon): extended;
+    procedure NewTeam(const Size: Integer);
+    procedure AddToTeam(const pkmn: TPokemon);
+    procedure GetStrengthAndWeaknesses(const pkmn: TPokemon; var Strength: TDynIntArray; var Weakness: TDynIntArray);
+
+    function GetPokePool: TPokemonList;
+    procedure SetBannedPokemon(AValue: TPokemonList);
+    procedure SetPokePool(AValue: TPokemonList);
+    procedure SetRequiredMoves(AValue: TMoveList);
+    procedure SetRequiredPokemon(AValue: TPokemonList);
+    procedure SetStrengthTable(AValue: TStrengthTable);
   public
-    constructor Create(DB: TDBConnection);
+    constructor Create;
     destructor Destroy; override;
-    procedure GenerateTeams(TeamSize, TeamCount: integer;
-      SelectLanguage: TSelectLanguageEvent; SelectGeneration: TSelectGenerationEvent;
-      SelectMoves: TSelectMovesEvent; SelectObtainableKinds: TSelectObtainKindsEvent;
-      SelectPokemon: TSelectPokemonEvent; SelectIgnore: TSelectIgnoresEvent;
-      TeamGenerated: TTeamGeneratedEvent);
-    property Moves: TMoveList read FMoves;
-    property StrengthTable: TStrengthTable read FStrengthTable;
-  end;
 
-const
-  MoveValue = 200;
-  FactorDivisor = 20;
-  Shuffle = 20;
-  SingleTypeBonus = 30;
+    function SampleTeam(const Size: Integer): TTeam;
+
+    property RequiredPokemon: TPokemonList read FRequiredPokemon write SetRequiredPokemon;
+    property RequiredMoves: TMoveList read FRequiredMoves write SetRequiredMoves;
+    property BannedPokemon: TPokemonList read FBannedPokemon write SetBannedPokemon;
+    property StrengthTable: TStrengthTable read FStrengthTable write SetStrengthTable;
+    property PokePool: TPokemonList read GetPokePool write SetPokePool;
+  end;
 
 
 implementation
 
-
-procedure TPKTB.GetTypeValues(tid: integer; var SC, WC: array of integer);
-var
-  i, j: integer;
-begin
-  if FStrengthTable.FindType(tid) < 0 then
-    tid := 1;
-  for i := 0 to FStrengthTable.Count - 1 do
-    if FStrengthTable[i].ID = tid then
-    begin
-      for j := 0 to Length(FStrengthTable[i].Factors) - 1 do
-        if SC[j] < FStrengthTable[i].Factors[j].Factor then
-        begin
-          SC[j] := FStrengthTable[i].Factors[j].Factor;
-        end;
-    end
-    else
-    begin
-      for j := 0 to Length(FStrengthTable[i].Factors) - 1 do
-        if (FStrengthTable[i].Factors[j].TID = tid) and
-          ((WC[i] = 100) or (WC[i] < 0) or ((WC[i] > 100) and
-          (FStrengthTable[i].Factors[j].Factor < 100)) or (WC[i] < 100) and
-          (FStrengthTable[i].Factors[j].Factor < WC[i])) then
-        begin
-          WC[i] := FStrengthTable[i].Factors[j].Factor;
-        end;
-    end;
-
-end;
-
 { TPKTB }
 
-function GetStrength(TID: integer; Team: TTeam): integer;
+procedure TPKTB.NewTeam(const Size: Integer);
 var
-  i: integer;
+  i: Integer;
 begin
-  for i := 0 to Length(Team.Strength) - 1 do
-    if Team.Strength[i].TID = TID then
-    begin
-      Result := Team.Strength[i].Factor;
-      Exit;
-    end;
-  Result := 0;
+  SetLength(FSampledTeam.Pokemon, Size);
+  SetLength(FSampledTeam.Weakness, FStrengthTable.Count);
+  SetLength(FSampledTeam.Strength, FStrengthTable.Count);
+  for i:=0 to FStrengthTable.Count-1 do
+  begin
+    FSampledTeam.Weakness[i].Factor:=0;
+    FSampledTeam.Weakness[i].Name:=FStrengthTable[i].Name;
+    FSampledTeam.Weakness[i].TID:=FStrengthTable[i].ID;
+    FSampledTeam.Strength[i].Factor:=0;
+    FSampledTeam.Strength[i].Name:=FStrengthTable[i].Name;
+    FSampledTeam.Strength[i].TID:=FStrengthTable[i].ID;
+  end;
+  FSampledTeam.CurrentSize := 0;
 end;
 
-function GetWeakness(TID: integer; Team: TTeam): integer;
+function TPKTB.ComputeWeight(const Item: TPokemon): extended;
 var
-  i: integer;
-begin
-  for i := 0 to Length(Team.Weakness) - 1 do
-    if Team.Weakness[i].TID = TID then
-    begin
-      Result := Team.Weakness[i].Factor;
-      Exit;
-    end;
-  Result := 0;
+  w, s: TDynIntArray;
+  SDistance: Extended;
+  WDistance: Extended;
+  i: Integer;
+  m, m2: TMove;
+  moveFound: Boolean;
+begin       
+  Result:=0;
+  // Dont sample twice
+  for i:=0 to FSampledTeam.CurrentSize-1 do
+    if FSampledTeam.Pokemon[i].ID = Item.ID then Exit;
+                                               
+  // if there are still required moves left
+  // this pokemon needs to know at least one of them
+  // to get any weight
+  moveFound := FStillRequiredMoves.Count = 0;
+  for m in FStillRequiredMoves do
+    for m2 in Item.Moves do
+      if m.AttackID = m2.AttackID then
+        moveFound:=True;
+  if not moveFound then
+    Exit;
+
+  Result:=1;
+
+  if FSampledTeam.CurrentSize = 0 then
+  begin
+    // For the first pokemon we want equal chances
+    Exit;
+  end;
+
+  SetLength(SDistances, FStrengthTable.Count);
+  SetLength(WDistances, FStrengthTable.Count);
+  GetStrengthAndWeaknesses(Item, s, w);
+  for i:=0 to FStrengthTable.Count-1 do
+  begin
+    SDistance := s[i] / (FSampledTeam.Strength[i] / FSampledTeam.CurrentSize);
+    WDistance := (FSampledTeam.Strength[i] / FSampledTeam.CurrentSize) / w[i];
+    Result := Result * SDistance * WDistance;
+  end;
+  Result := Max(Result, 0);
 end;
 
-procedure TPKTB.GenTeam(var Team: TTeam; Count: integer; var Pool: TPokemonList;
-  var Moves: TMoveList);
+procedure TPKTB.AddToTeam(const pkmn: TPokemon);
 var
-  Weight: array of integer;
-  pkmn: TPokemon;
-  w, j, i: integer;
-  SAvg, WAvg: int64;
-  sc, wc: array of integer;
+  w, s: TDynIntArray;
+  i: Integer;
 begin
-  CalcStrength(Team);
-  if Count = 0 then
-    exit;
-  // Strength and Weaknessfactors as metric
-  Savg := 0;
-  Wavg := 0;
-  for i := 0 to Length(Team.Strength) - 1 do
+  FSampledTeam.Pokemon[FSampledTeam.CurrentSize] := pkmn;
+  GetStrengthAndWeaknesses(pkmn, s, w);
+  for i:=0 to FStrengthTable.Count-1 do
   begin
-    Inc(Savg, Team.Strength[i].Factor);
-    Inc(Wavg, Team.Weakness[i].Factor);
+    FSampledTeam.Weakness[i].Factor += w[i];
+    FSampledTeam.Strength[i].Factor += s[i];
   end;
-  Savg := Savg div Length(Team.Strength);
-  WAvg := Wavg div Length(Team.Weakness);
-  SetLength(SC, FStrengthTable.Count);
-  SetLength(WC, FStrengthTable.Count);
-  // Weighting
-  SetLength(Weight, Pool.Count);
-  for i := 0 to Pool.Count - 1 do
-  begin
-    for j := 0 to FStrengthTable.Count - 1 do
-    begin
-      SC[j] := -1;
-      WC[j] := -1;
-    end;
-    w := 0;
-    pkmn := Pool[i];
-    // Weakness, Strengths
-    GetTypeValues(pkmn.Type1, SC, WC);
-    if pkmn.Type2 > 0 then
-      GetTypeValues(pkmn.Type2, SC, WC)
-    else
-      Inc(w, SingleTypeBonus*Count*FStrengthTable.Count div FactorDivisor);
-    for j := 0 to FStrengthTable.Count - 1 do
-    begin
-      if (Team.Strength[j].Factor <= SAvg) and (sc[i]>=0) then
-        Inc(w, sc[j] div FactorDivisor * FStrengthTable.Count);
-      if (Team.Weakness[j].Factor >= WAvg) and (wc[i]>=0) then
-        Dec(w, WC[j] div FactorDivisor);
-    end;
-    for j := 0 to Length(pkmn.Moves) - 1 do
-    begin
-      if pkmn.Moves[j].Available and (Moves.FindMove(pkmn.Moves[j].MID) >= 0) then
-        if (pkmn.Type1 = Moves[j].TypeID) or (pkmn.Type2 = Moves[j].TypeID) then
-          Inc(w, (MoveValue div Count) * 2)
-        else
-          Inc(w, MoveValue div Count);
-    end;
-    Weight[i] := w + Random(Count * Shuffle) * FactorDivisor;
-  end;
-  i := -1;
-  j := integer.MinValue;
-  for w := 0 to Pool.Count - 1 do
-    if Weight[w] > j then
-    begin
-      j := Weight[w];
-      i := w;
-    end;
-  for j := 0 to Length(Team.Pokemon) - 1 do
-    if Team.Pokemon[j].ID = 0 then
-    begin
-      Team.Pokemon[j] := Pool[i];
-      Pool.Delete(i);
-      for w := 0 to Length(Team.Pokemon[j].Moves) - 1 do
-        if Team.Pokemon[j].Moves[w].Available then
-        begin
-          i := Moves.FindMove(Team.Pokemon[j].Moves[w].MID);
-          if i >= 0 then
-            Moves.Delete(i);
-        end;
-      Break;
-    end;
-  GenTeam(Team, Count - 1, Pool, Moves);
+  FSampledTeam.CurrentSize:=FSampledTeam.CurrentSize + 1;
 end;
 
-procedure TPKTB.CalcStrength(var Team: TTeam);
+procedure TPKTB.GetStrengthAndWeaknesses(const pkmn: TPokemon;
+  var Strength: TDynIntArray; var Weakness: TDynIntArray);
 var
-  i, j: integer;
-  s, w: array of integer;
+  f: Extended;
+  i, j: Integer;
 begin
-  SetLength(s, Length(Team.Strength));
-  SetLength(w, Length(Team.Weakness));
-  for i := 0 to Length(Team.Strength) - 1 do
+  SetLength(Strength, FStrengthTable.Count);
+  SetLength(Weakness, FStrengthTable.Count);
+  // initial weakness 100, multiplied for each
+  FillDWord(Weakness, SizeOf(Integer) * FStrengthTable.Count, 100);
+  for i:=0 to FStrengthTable.Count-1 do
   begin
-    Team.Strength[i].Factor := 0;
-    Team.Weakness[i].Factor := 0;
-  end;
-
-  for i := 0 to Length(Team.Pokemon) - 1 do
-  begin
-    if Team.Pokemon[i].ID = 0 then
-      Continue;
-
-    for j := 0 to Length(s) - 1 do
+    for j:=0 to FStrengthTable.Count-1 do
     begin
-      s[j] := -1;
-      w[j] := -1;
-    end;
-
-    GetTypeValues(Team.Pokemon[i].Type1, s, w);
-    if Team.Pokemon[i].Type2 > 0 then
-      GetTypeValues(Team.Pokemon[i].Type2, s, w);
-
-    for j := 0 to Length(s) - 1 do
-    begin
-      if s[j] < 0 then s[j] := 100;
-      if w[j] < 0 then w[j] := 100;
-      Team.Strength[j].Factor := Team.Strength[j].Factor + s[j];
-      Team.Weakness[j].Factor := Team.Weakness[j].Factor + w[j];
+      // compute strengths
+      if (FStrengthTable[i].ID = pkmn.Type1) Or (FStrengthTable[i].ID = pkmn.Type2) then
+      begin
+        // we are i, strong against j
+        Strength[j] += FStrengthTable[i].Factors[j].Factor;
+      end;
+      // compute weakness
+      if (FStrengthTable[i].Factors[j].TID = pkmn.Type1) or (FStrengthTable[i].Factors[j].TID = pkmn.Type2) then
+      begin
+        // we are j, weak against i
+        // if effective this is 2, if weak this is 1/2
+        f := FStrengthTable[i].Factors[j].Factor / 100;
+        Weakness[i] := trunc(Weakness[i] * f);
+      end;
     end;
   end;
 end;
 
-constructor TPKTB.Create(DB: TDBConnection);
+function TPKTB.GetPokePool: TPokemonList;
 begin
-  Randomize;
-  FDB := DB;
-  FMoves := TMoveList.Create;
-  FPokePool := TPokemonList.Create;
+  Result := FSampler.SampleableItems;
+end;
+
+procedure TPKTB.SetBannedPokemon(AValue: TPokemonList);
+begin
+  if FBannedPokemon=AValue then Exit;
+  FBannedPokemon.Assign(AValue);
+end;
+
+procedure TPKTB.SetPokePool(AValue: TPokemonList);
+begin
+  FSampler.SampleableItems:=AValue;
+end;
+
+procedure TPKTB.SetRequiredMoves(AValue: TMoveList);
+begin
+  if FRequiredMoves=AValue then Exit;
+  FRequiredMoves.Assign(AValue);
+end;
+
+procedure TPKTB.SetRequiredPokemon(AValue: TPokemonList);
+begin
+  if FRequiredPokemon=AValue then Exit;
+  FRequiredPokemon.Assign(AValue);
+end;
+
+procedure TPKTB.SetStrengthTable(AValue: TStrengthTable);
+begin
+  if FStrengthTable=AValue then Exit;
+  FStrengthTable.Assign(AValue);
+end;
+
+constructor TPKTB.Create;
+begin
   FStrengthTable := TStrengthTable.Create;
+  FRequiredMoves := TMoveList.Create;
+  FRequiredPokemon := TPokemonList.Create;
+  FBannedPokemon := TPokemonList.Create;
+  FStillRequiredMoves := TMoveList.Create;
+  FSampler:=TPokemonSampler.Create;
+  FSampler.addWeighter(@ComputeWeight);
 end;
 
 destructor TPKTB.Destroy;
 begin
-  FMoves.Free;
-  FPokePool.Free;
-  FStrengthTable.Free;
+  FRequiredMoves.Free;
+  FRequiredPokemon.Free;
+  FBannedPokemon.Free;
+  FStillRequiredMoves.Free;
+  FSampler.Free;
   inherited Destroy;
 end;
 
-procedure TPKTB.GenerateTeams(TeamSize, TeamCount: integer;
-  SelectLanguage: TSelectLanguageEvent; SelectGeneration: TSelectGenerationEvent;
-  SelectMoves: TSelectMovesEvent; SelectObtainableKinds: TSelectObtainKindsEvent;
-  SelectPokemon: TSelectPokemonEvent; SelectIgnore: TSelectIgnoresEvent;
-  TeamGenerated: TTeamGeneratedEvent);
+function TPKTB.SampleTeam(const Size: Integer): TTeam;
 var
-  ll: TLanguageList;
-  lg: TGenerationList;
-  lm: TMoveList;
-  ia: TDynIntArray;
-  mv: TDynIntArray;
-  i: integer;
-  t: TTeam;
-  btSize: integer;
-  localPool: TPokemonList;
+  p: TPokemon;
 begin
-  if not (Assigned(SelectLanguage) and Assigned(SelectGeneration) and
-    Assigned(SelectMoves) and Assigned(SelectObtainableKinds) and
-    Assigned(SelectPokemon) and Assigned(SelectIgnore) and
-    Assigned(TeamGenerated) and (TeamSize > 0) and (TeamCount > 0)) then
-    raise EInvalidParamsException.Create('Invalid parameter');
-
-  FTeamGenerated := TeamGenerated;
-
-  ll := TLanguageList.Create;
-  try
-    ll.LoadLanguages(FDB);
-    FLanguage := ll[SelectLanguage(ll)];
-  finally
-    ll.Free;
-  end;
-  lg := TGenerationList.Create;
-  try
-    lg.LoadGenerations(FDB, FLanguage.ID);
-    FEdition := lg[SelectGeneration(lg)];
-  finally
-    lg.Free;
-  end;
-  lm := TMoveList.Create;
-  try
-    lm.LoadMoves(FDB, FLanguage.ID, FEdition.GenerationID);
-    FMoves.Clear;
-    ia := SelectMoves(lm);
-    for i in ia do
-      FMoves.Add(lm[i]);
-  finally
-    lm.Free;
-  end;
-  SetLength(ia, 0);
-  SetLength(FBaseTeam.Pokemon, TeamSize);
-  FStrengthTable.LoadStrengthTable(FDB, FLanguage.ID, FEdition.GenerationID);
-  SetLength(FBaseTeam.Strength, FStrengthTable.Count);
-  for i := 0 to Length(FBaseTeam.Strength) - 1 do
+  FSampledTeam := newTeam(Size);
+  for p in RequiredPokemon do
+    AddToTeam(p);
+  FStillRequiredMoves.Assign(FRequiredMoves);
+  for i:=FSampledTeam.CurrentSize to Size-1 do
   begin
-    FBaseTeam.Strength[i].TID := FStrengthTable[i].ID;
-    FBaseTeam.Strength[i].Name := FStrengthTable[i].Name;
+    FSampler.refresh;
+    p := FSampler.Sample;
+    AddToTeam(p);
   end;
-
-  SetLength(FBaseTeam.Weakness, FStrengthTable.Count);
-  for i := 0 to Length(FBaseTeam.Weakness) - 1 do
-  begin
-    FBaseTeam.Weakness[i].TID := FStrengthTable[i].ID;
-    FBaseTeam.Weakness[i].Name := FStrengthTable[i].Name;
-  end;
-
-  SetLength(mv, FMoves.Count);
-  for i := 0 to FMoves.Count - 1 do
-    mv[i] := FMoves[i].AttackID;
-
-  btSize := 0;
-
-  FPokePool.LoadPokemons(FDB, FLanguage.ID, FEdition, SelectObtainableKinds(), mv);
-  ia := SelectPokemon(FPokePool);
-  for i := 0 to length(ia) - 1 do
-  begin
-    Inc(btSize);
-    FBaseTeam.Pokemon[i] := FPokePool[ia[i] - i];
-    FPokePool.Delete(ia[i] - i);
-  end;
-  SetLength(ia, 0);
-
-  ia := SelectIgnore(FPokePool);
-  for i := 0 to length(ia) - 1 do
-    FPokePool.Delete(ia[i] - i);
-
-  localPool := TPokemonList.Create;
-  lm := TMoveList.Create;
-  try
-    for i := 0 to TeamCount - 1 do
-    begin
-      localPool.Assign(FPokePool);
-      lm.Assign(FMoves);
-      t := FBaseTeam;
-      SetLength(t.Pokemon, Length(t.Pokemon));
-      FillChar(t.Pokemon[btSize], SizeOf(TPokemon) * TeamSize - btSize, #00);
-      SetLength(t.Strength, Length(t.Strength));
-      SetLength(t.Weakness, Length(t.Weakness));
-      GenTeam(t, TeamSize - btSize, localPool, lm);
-      TeamGenerated(t);
-    end;
-  finally
-    lm.Free;
-    localPool.Free;
-  end;
+  Result:=FSampledTeam;
 end;
 
 end.
