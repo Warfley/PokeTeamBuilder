@@ -5,7 +5,7 @@ unit pktb;
 interface
 
 uses
-  Classes, SysUtils, fgl, PkTBTypes, listrecords, Math;
+  Classes, SysUtils, fgl, PkTBTypes, listrecords, Math, Sampler;
 
 type
   TSelectLanguageEvent = function(const Languages: TLanguageList): integer of object;

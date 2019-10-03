@@ -426,7 +426,7 @@ end;
       Terminate;
       Exit;
     end;
-    DB := TDBConnection.Create({$IFDEF Unix}'/etc/pktb/veekun-pokedex.sqlite'{$ELSE}'./veekun-pokedex.sqlite'{$Endif});
+    DB := TDBConnection.Create('./veekun-pokedex.sqlite');
     pktb := TPKTB.Create(DB);
     try
       if not longbool(ParamCount) then
